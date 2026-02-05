@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "sarvadhi-community",
+    "owner": "sarvadhisolution",
     "slug": "sarvadhi-community",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +10,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to take profile photos.",
+        "NSPhotoLibraryUsageDescription": "This app uses the photo library to select profile photos.",
+        "NSContactsUsageDescription": "This app uses contacts to help you connect with friends and colleagues."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +25,13 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_CONTACTS"
+      ]
     },
     "web": {
       "output": "static",
