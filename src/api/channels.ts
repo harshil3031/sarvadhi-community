@@ -39,12 +39,15 @@ export namespace Channel {
  * Channels API Module
  */
 export const channelApi = {
-  /**
-   * GET /channels/public
-   * Get all public channels
-   */
   getPublicChannels: () =>
     apiClient.get<ApiResponse<Channel.Channel[]>>('/channels/public'),
+
+  /**
+   * GET /channels
+   * Get all accessible channels (joined + public)
+   */
+  getAccessibleChannels: () =>
+    apiClient.get<ApiResponse<Channel.Channel[]>>('/channels'),
 
   /**
    * GET /channels/:id
@@ -129,5 +132,19 @@ export const channelApi = {
    */
   removeMember: (channelId: string, userId: string) =>
     apiClient.post<ApiResponse<void>>(`/channels/${channelId}/remove-member`, { userId }),
+
+  /**
+   * POST /channels/:id/accept-invite
+   * Accept a channel invitation
+   */
+  acceptInvite: (channelId: string) =>
+    apiClient.post<ApiResponse<void>>(`/channels/${channelId}/accept-invite`),
+
+  /**
+   * POST /channels/:id/reject-invite
+   * Reject a channel invitation
+   */
+  rejectInvite: (channelId: string) =>
+    apiClient.post<ApiResponse<void>>(`/channels/${channelId}/reject-invite`),
 };
 

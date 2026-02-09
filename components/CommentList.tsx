@@ -10,7 +10,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { commentApi, Comment } from '../src/api/comment.api';
 import { useAuthStore } from '../src/store';
 
@@ -25,13 +27,14 @@ export default function CommentList({
   commentCount,
   onCommentCountChange,
 }: CommentListProps) {
+  const router = useRouter();
   const { user } = useAuthStore();
   const [comments, setComments] = useState<Comment.Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
-  
+
   // Add comment state
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +54,7 @@ export default function CommentList({
 
       if (response.data.success && response.data.data) {
         const newComments = response.data.data;
-        
+
         if (reset) {
           setComments(newComments);
           setOffset(LIMIT);
@@ -59,7 +62,7 @@ export default function CommentList({
           setComments(prev => [...prev, ...newComments]);
           setOffset(prev => prev + LIMIT);
         }
-        
+
         setHasMore(newComments.length === LIMIT);
       }
     } catch (error: any) {
@@ -97,12 +100,12 @@ export default function CommentList({
     setIsSubmitting(true);
     try {
       const response = await commentApi.createComment(postId, { content });
-      
+
       if (response.data.success && response.data.data) {
         // Add comment to list
         setComments(prev => [response.data.data!, ...prev]);
         setNewComment('');
-        
+
         // Update comment count
         onCommentCountChange?.(commentCount + 1);
       }
@@ -142,7 +145,10 @@ export default function CommentList({
     return (
       <View style={styles.commentCard}>
         <View style={styles.commentHeader}>
-          <View style={styles.commentAuthorInfo}>
+          <TouchableOpacity
+            style={styles.commentAuthorInfo}
+            onPress={() => router.push(`/user/${item.authorId}`)}
+          >
             <View style={styles.commentAvatar}>
               <Text style={styles.commentAvatarText}>
                 {item.author?.fullName?.charAt(0).toUpperCase() || '?'}
@@ -159,8 +165,8 @@ export default function CommentList({
                 })}
               </Text>
             </View>
-          </View>
-          
+          </TouchableOpacity>
+
           {isAuthor && (
             <Pressable
               style={styles.deleteCommentButton}
@@ -248,7 +254,7 @@ export default function CommentList({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -257,7 +263,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
     gap: 8,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
   },
   userAvatar: {
     width: 32,
@@ -321,7 +327,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginHorizontal: 12,
     marginVertical: 6,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },

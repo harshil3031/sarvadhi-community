@@ -63,6 +63,15 @@ export const postApi = {
     }),
 
   /**
+   * GET /posts/user/:authorId
+   * Get posts by author
+   */
+  getPostsByAuthor: (authorId: string, limit = 20, offset = 0) =>
+    apiClient.get<ApiResponse<Post.Post[]>>(`/posts/user/${authorId}`, {
+      params: { limit, offset },
+    }),
+
+  /**
    * GET /posts/:id
    * Get specific post
    */

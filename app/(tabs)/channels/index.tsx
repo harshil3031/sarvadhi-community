@@ -9,19 +9,41 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useChannelStore } from '@/store/channel.store';
+import { useAuthStore } from '@/store/auth.store';
 import { Channel } from '@/api/channels';
+import CreateChannelModal from '../../../components/CreateChannelModal';
+import { useSocketStore } from '../../../src/store/socket.store';
 
 export default function ChannelsScreen() {
-  const { channels, isLoading, fetchChannels, joinChannel, leaveChannel } = useChannelStore();
+  const { channels, isLoading, fetchChannels, joinChannel, leaveChannel, requestJoinPrivate } = useChannelStore();
+  const { user } = useAuthStore();
+  const { on, off } = useSocketStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+
+  const canCreateChannel = user?.role === 'admin' || user?.role === 'moderator';
 
   useEffect(() => {
     fetchChannels();
   }, []);
+
+  useEffect(() => {
+    const handleMembershipChange = () => {
+      fetchChannels();
+    };
+
+    on('channel_membership_changed', handleMembershipChange);
+
+    return () => {
+      off('channel_membership_changed', handleMembershipChange);
+    };
+  }, [on, off, fetchChannels]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -36,8 +58,13 @@ export default function ChannelsScreen() {
         await leaveChannel(channel.id);
         Alert.alert('Success', 'Left channel successfully');
       } else {
-        await joinChannel(channel.id);
-        Alert.alert('Success', 'Joined channel successfully');
+        if (channel.type === 'private') {
+          await requestJoinPrivate(channel.id);
+          Alert.alert('Requested', 'Your request to join this private channel has been submitted.');
+        } else {
+          await joinChannel(channel.id);
+          Alert.alert('Success', 'Joined channel successfully');
+        }
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || `Failed to ${channel.isMember ? 'leave' : 'join'} channel`;
@@ -68,13 +95,13 @@ export default function ChannelsScreen() {
               </View>
             )}
           </View>
-          
+
           {item.description && (
             <Text style={styles.channelDescription} numberOfLines={2}>
               {item.description}
             </Text>
           )}
-          
+
           <View style={styles.channelFooter}>
             <Text style={styles.memberCount}>
               👥 {item.memberCount || 0} {item.memberCount === 1 ? 'member' : 'members'}
@@ -98,7 +125,7 @@ export default function ChannelsScreen() {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.joinButtonText}>
-              {item.isMember ? 'Leave' : 'Join'}
+              {item.isMember ? 'Leave' : (item.type === 'private' ? 'Request' : 'Join')}
             </Text>
           )}
         </Pressable>
@@ -117,6 +144,20 @@ export default function ChannelsScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerTitle: 'Channels',
+          headerRight: () => canCreateChannel ? (
+            <TouchableOpacity
+              onPress={() => setIsCreateModalVisible(true)}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="add" size={28} color="#2563EB" />
+            </TouchableOpacity>
+          ) : null
+        }}
+      />
+
       <FlatList
         data={channels}
         keyExtractor={(item) => item.id}
@@ -137,6 +178,12 @@ export default function ChannelsScreen() {
             </Text>
           </View>
         }
+      />
+
+      <CreateChannelModal
+        visible={isCreateModalVisible}
+        onClose={() => setIsCreateModalVisible(false)}
+        onChannelCreated={() => fetchChannels()}
       />
     </View>
   );
@@ -160,10 +207,11 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
+    paddingBottom: 24,
   },
   channelCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
@@ -191,7 +239,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   channelName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: '#111827',
   },
@@ -223,8 +271,8 @@ const styles = StyleSheet.create({
   joinButton: {
     backgroundColor: '#3B82F6',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 9,
+    borderRadius: 10,
     minWidth: 80,
     alignItems: 'center',
     justifyContent: 'center',

@@ -5,6 +5,13 @@ module.exports = {
   // Setup files to run before tests
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   
+  // TypeScript support
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.test.json'
+    }
+  },
+  
   // Transform files with babel
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',

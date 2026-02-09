@@ -8,10 +8,16 @@ export namespace Group {
     id: string;
     name: string;
     description?: string;
-    creatorId: string;
+    createdBy: string;
     createdAt: string;
     updatedAt: string;
     memberCount?: number;
+    isMember?: boolean;
+    creator?: {
+      id: string;
+      fullName: string;
+      email: string;
+    };
   }
 
   export interface CreateGroupRequest {
@@ -25,11 +31,16 @@ export namespace Group {
   }
 
   export interface GroupMember {
-    id: string;
-    fullName: string;
-    email: string;
-    role: 'creator' | 'admin' | 'member';
+    userId: string;
+    groupId: string;
+    role?: 'creator' | 'admin' | 'member';
     joinedAt: string;
+    user: {
+      id: string;
+      fullName: string;
+      email: string;
+      profilePhotoUrl?: string;
+    }
   }
 }
 
@@ -38,8 +49,15 @@ export namespace Group {
  */
 export const groupApi = {
   /**
+   * GET /groups
+   * Get all accessible groups
+   */
+  getAllGroups: () =>
+    apiClient.get<ApiResponse<Group.Group[]>>('/groups'),
+
+  /**
    * GET /groups/my
-   * Get current user's groups
+   * Get user's groups
    */
   getMyGroups: () =>
     apiClient.get<ApiResponse<Group.Group[]>>('/groups/my'),
@@ -73,6 +91,13 @@ export const groupApi = {
     apiClient.delete<ApiResponse<void>>(`/groups/${id}`),
 
   /**
+   * POST /groups/:id/join
+   * Join a group
+   */
+  joinGroup: (id: string) =>
+    apiClient.post<ApiResponse<void>>(`/groups/${id}/join`),
+
+  /**
    * POST /groups/:id/invite
    * Invite user to group
    */
@@ -90,7 +115,7 @@ export const groupApi = {
    * POST /groups/:id/remove-user
    * Remove user from group (creator only)
    */
-  removeUser: (groupId: string, userId: string) =>
+  removeMember: (groupId: string, userId: string) =>
     apiClient.post<ApiResponse<void>>(`/groups/${groupId}/remove-user`, { userId }),
 
   /**

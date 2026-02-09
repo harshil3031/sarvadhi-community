@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DM } from '../src/api/dm.api';
 import { formatMessageTime } from '../src/utils/date';
@@ -10,8 +10,33 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
+  const slideAnim = useRef(new Animated.Value(isOwn ? 100 : -100)).current; // x-axis start
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [slideAnim, opacityAnim]);
+
   return (
-    <View style={[styles.container, isOwn && styles.containerOwn]}>
+    <Animated.View
+      style={[
+        styles.container,
+        isOwn && styles.containerOwn,
+        { transform: [{ translateX: slideAnim }], opacity: opacityAnim },
+      ]}
+    >
+      {/* Avatar for others */}
       {!isOwn && message.sender && (
         <View style={styles.avatarContainer}>
           {message.sender.avatar ? (
@@ -19,12 +44,13 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
               {message.sender.fullName?.charAt(0).toUpperCase() || '?'}
             </Text>
           ) : (
-            <Ionicons name="person-circle" size={32} color="#ccc" />
+            <Ionicons name="person-circle" size={36} color="#ccc" />
           )}
         </View>
       )}
 
-      <View style={[styles.bubble, isOwn && styles.bubbleOwn]}>
+      {/* Bubble */}
+      <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
         {!isOwn && message.sender && (
           <Text style={styles.senderName}>{message.sender.fullName}</Text>
         )}
@@ -45,25 +71,25 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
           )}
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 8,
+    marginBottom: 10,
     paddingHorizontal: 16,
-    gap: 8,
   },
   containerOwn: {
     justifyContent: 'flex-end',
   },
   avatarContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#e5e5e5',
     justifyContent: 'center',
     alignItems: 'center',
@@ -72,27 +98,40 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#555',
   },
+
   bubble: {
     maxWidth: '75%',
-    backgroundColor: '#e5e7eb',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
+
+  // Modern chat bubble with "smooth tail" effect using border radius
   bubbleOwn: {
     backgroundColor: '#3b82f6',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 4,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
+  bubbleOther: {
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+
   senderName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: '#6b7280',
     marginBottom: 4,
   },
   messageText: {
     fontSize: 15,
-    color: '#333',
+    color: '#111827',
     lineHeight: 20,
   },
   messageTextOwn: {
@@ -102,10 +141,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
+    justifyContent: 'flex-end',
   },
   timestamp: {
     fontSize: 11,
-    color: '#999',
+    color: '#9ca3af',
   },
   timestampOwn: {
     color: 'rgba(255, 255, 255, 0.7)',

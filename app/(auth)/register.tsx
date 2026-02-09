@@ -10,16 +10,17 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { Link } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
-import Constants from 'expo-constants';
+// import * as WebBrowser from 'expo-web-browser';
+// import * as AuthSession from 'expo-auth-session';
+// import * as Google from 'expo-auth-session/providers/google';
+// import Constants from 'expo-constants';
 import { useAuthStore } from '../../src/store/auth.store';
 
 // Prompt user with browser UI
-WebBrowser.maybeCompleteAuthSession();
+// WebBrowser.maybeCompleteAuthSession();
 
 /**
  * Register Screen
@@ -44,44 +45,44 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState('');
 
-  const projectNameForProxy = Constants.expoConfig?.owner && Constants.expoConfig?.slug
-    ? `@${Constants.expoConfig.owner}/${Constants.expoConfig.slug}`
-    : undefined;
-  const useProxy = Constants.appOwnership === 'expo' && !!projectNameForProxy;
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'sarvadhicommunity',
-    path: 'auth',
-  });
+  // const projectNameForProxy = Constants.expoConfig?.owner && Constants.expoConfig?.slug
+  //   ? `@${Constants.expoConfig.owner}/${Constants.expoConfig.slug}`
+  //   : undefined;
+  // const useProxy = Constants.appOwnership === 'expo' && !!projectNameForProxy;
+  // const redirectUri = AuthSession.makeRedirectUri({
+  //   scheme: 'sarvadhicommunity',
+  //   path: 'auth',
+  // });
 
-  // Google Auth setup - for Expo Go, only expoClientId is needed
-  const googleConfig: any = {
-    expoClientId: '24980858525-fpjqqn80c54ee7gkecb6hesoalc3q9c9.apps.googleusercontent.com',
-    // For Expo Go on Android, use this with package: host.exp.exponent and SHA-1: 9C:5C:1A:1F:48:B1:D7:97:15:5E:2F:C3:1B:1E:96:7C:7F:2E:94:37
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'CREATE_ANDROID_CLIENT_IN_GOOGLE_CLOUD',
-    responseType: AuthSession.ResponseType.IdToken,
-    redirectUri,
-    scopes: ['profile', 'email'],
-  };
+  // // Google Auth setup - for Expo Go, only expoClientId is needed
+  // const googleConfig: any = {
+  //   expoClientId: '24980858525-fpjqqn80c54ee7gkecb6hesoalc3q9c9.apps.googleusercontent.com',
+  //   // For Expo Go on Android, use this with package: host.exp.exponent and SHA-1: 9C:5C:1A:1F:48:B1:D7:97:15:5E:2F:C3:1B:1E:96:7C:7F:2E:94:37
+  //   androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'CREATE_ANDROID_CLIENT_IN_GOOGLE_CLOUD',
+  //   responseType: AuthSession.ResponseType.IdToken,
+  //   redirectUri,
+  //   scopes: ['profile', 'email'],
+  // };
 
-  // Add iOS client ID if NOT in Expo Go (for dev builds/standalone)
-  if (Constants.appOwnership !== 'expo' && process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
-    googleConfig.iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-  }
+  // // Add iOS client ID if NOT in Expo Go (for dev builds/standalone)
+  // if (Constants.appOwnership !== 'expo' && process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
+  //   googleConfig.iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  // }
 
-  const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
+  // const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
 
-  // Handle Google auth response
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication, params } = response;
-      const idToken = authentication?.idToken ?? (params as { id_token?: string })?.id_token;
-      if (idToken) {
-        handleGoogleRegisterWithToken(idToken);
-      } else {
-        Alert.alert('Google Sign Up Failed', 'No ID token returned from Google');
-      }
-    }
-  }, [response]);
+  // // Handle Google auth response
+  // useEffect(() => {
+  //   if (response?.type === 'success') {
+  //     const { authentication, params } = response;
+  //     const idToken = authentication?.idToken ?? (params as { id_token?: string })?.id_token;
+  //     if (idToken) {
+  //       handleGoogleRegisterWithToken(idToken);
+  //     } else {
+  //       Alert.alert('Google Sign Up Failed', 'No ID token returned from Google');
+  //     }
+  //   }
+  // }, [response]);
 
   // Validate form
   const validateForm = (): boolean => {
@@ -104,6 +105,11 @@ export default function RegisterScreen() {
     
     if (!email.includes('@')) {
       setValidationError('Please enter a valid email');
+      return false;
+    }
+
+    if (!email.toLowerCase().endsWith('@sarvadhi.com')) {
+      setValidationError('Email must be from @sarvadhi.com domain');
       return false;
     }
     
@@ -149,39 +155,39 @@ export default function RegisterScreen() {
     }
   };
 
-  // Handle Google registration with token
-  const handleGoogleRegisterWithToken = async (idToken: string) => {
-    try {
-      setIsLoading(true);
-      clearError();
-      
-      // Call loginWithGoogle which will handle registration via backend
-      await loginWithGoogle(idToken);
+  // // Handle Google registration with token
+  // const handleGoogleRegisterWithToken = async (idToken: string) => {
+  //   try {
+  //     setIsLoading(true);
+  //     clearError();
+  //     
+  //     // Call loginWithGoogle which will handle registration via backend
+  //     await loginWithGoogle(idToken);
 
-      // Success - navigation handled automatically by root layout
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Could not sign up with Google';
-      Alert.alert('Google Sign Up Failed', errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     // Success - navigation handled automatically by root layout
+  //   } catch (err: any) {
+  //     const errorMessage = err?.message || 'Could not sign up with Google';
+  //     Alert.alert('Google Sign Up Failed', errorMessage);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
-  // Trigger Google auth flow
-  const handleGoogleRegister = async () => {
-    try {
-      const result = await promptAsync({
-        useProxy,
-        projectNameForProxy,
-      });
-      if (result?.type !== 'success') {
-        console.log('Google sign up cancelled or failed');
-      }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Could not start Google sign up';
-      Alert.alert('Google Sign Up Error', errorMessage);
-    }
-  };
+  // // Trigger Google auth flow
+  // const handleGoogleRegister = async () => {
+  //   try {
+  //     const result = await promptAsync({
+  //       useProxy,
+  //       projectNameForProxy,
+  //     });
+  //     if (result?.type !== 'success') {
+  //       console.log('Google sign up cancelled or failed');
+  //     }
+  //   } catch (error: any) {
+  //     const errorMessage = error?.message || 'Could not start Google sign up';
+  //     Alert.alert('Google Sign Up Error', errorMessage);
+  //   }
+  // };
 
   const isButtonDisabled = isLoading || storeLoading;
 
@@ -195,6 +201,15 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../assets/images/logo.jpg')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Create Account</Text>
@@ -222,8 +237,6 @@ export default function RegisterScreen() {
                 setValidationError('');
                 clearError();
               }}
-              autoCapitalize="words"
-              autoComplete="name"
               editable={!isButtonDisabled}
             />
           </View>
@@ -240,9 +253,7 @@ export default function RegisterScreen() {
                 setValidationError('');
                 clearError();
               }}
-              autoCapitalize="none"
               keyboardType="email-address"
-              autoComplete="email"
               editable={!isButtonDisabled}
             />
           </View>
@@ -260,8 +271,6 @@ export default function RegisterScreen() {
                 clearError();
               }}
               secureTextEntry
-              autoCapitalize="none"
-              autoComplete="password-new"
               editable={!isButtonDisabled}
             />
           </View>
@@ -279,8 +288,6 @@ export default function RegisterScreen() {
                 clearError();
               }}
               secureTextEntry
-              autoCapitalize="none"
-              autoComplete="password-new"
               editable={!isButtonDisabled}
             />
           </View>
@@ -299,20 +306,20 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           {/* Divider */}
-          <View style={styles.divider}>
+          {/* <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>OR</Text>
             <View style={styles.dividerLine} />
-          </View>
+          </View> */}
 
           {/* Google Register Button */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={[styles.button, styles.googleButton, isButtonDisabled && styles.buttonDisabled]}
             onPress={handleGoogleRegister}
             disabled={isButtonDisabled}
           >
             <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* Login Link */}
           <View style={styles.footer}>
@@ -332,7 +339,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F9FAFB',
   },
   scrollContent: {
     flexGrow: 1,
@@ -341,6 +348,23 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginVertical: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 120,
+    height: 120,
   },
   header: {
     marginBottom: 32,
@@ -376,11 +400,11 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#dddddd',
-    borderRadius: 8,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
     padding: 14,
     fontSize: 16,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#ffffff',
   },
   button: {
     borderRadius: 8,
@@ -390,7 +414,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#2563EB',
     marginTop: 8,
   },
   buttonDisabled: {
@@ -437,7 +461,7 @@ const styles = StyleSheet.create({
   },
   link: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#2563EB',
     fontWeight: '600',
   },
 });

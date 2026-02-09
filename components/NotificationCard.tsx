@@ -9,7 +9,10 @@ import {
   useColorScheme,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Notification } from '../src/api/notification.api';
+import { channelApi } from '../src/api/channels';
+import { groupApi } from '../src/api/group.api';
 import { Colors } from '../constants/theme';
 
 const NotificationCardColors = {
@@ -32,16 +35,22 @@ const NotificationCardColors = {
 interface NotificationCardProps {
   notification: Notification.Notification;
   onMarkAsRead: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 export default function NotificationCard({
   notification,
   onMarkAsRead,
+  onDelete,
 }: NotificationCardProps) {
   const colorScheme = useColorScheme();
   const colors = NotificationCardColors[colorScheme ?? 'light'] as typeof NotificationCardColors['light'];
+  const router = useRouter();
 
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
+  const [inviteHandled, setInviteHandled] = useState(false);
 
   const getIconName = (type: string) => {
     switch (type) {
@@ -114,6 +123,66 @@ export default function NotificationCard({
     }
   };
 
+  const handleAcceptInvite = async () => {
+    if (!notification.relatedId) {
+      Alert.alert('Error', 'Invalid invitation');
+      return;
+    }
+
+    setIsAccepting(true);
+    try {
+      if (notification.type === 'channel_invite') {
+        // Use acceptInvite for channel invitations
+        await channelApi.acceptInvite(notification.relatedId);
+        Alert.alert('Success', 'Joined channel successfully!');
+        router.push(`/channels/${notification.relatedId}`);
+      } else if (notification.type === 'group_invite') {
+        await groupApi.joinGroup(notification.relatedId);
+        Alert.alert('Success', 'Joined group successfully!');
+        router.push(`/groups/${notification.relatedId}`);
+      }
+      setInviteHandled(true);
+      await onMarkAsRead(notification.id);
+      await onDelete(notification.id);
+    } catch (err: any) {
+      console.error('Failed to accept invite:', err);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to accept invitation');
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  const handleDeclineInvite = async () => {
+    if (!notification.relatedId) {
+      Alert.alert('Error', 'Invalid invitation');
+      return;
+    }
+
+    setIsDeclining(true);
+    try {
+      // Reject the invitation in the database
+      if (notification.type === 'channel_invite') {
+        await channelApi.rejectInvite(notification.relatedId);
+      } else if (notification.type === 'group_invite') {
+        // For groups, just mark as read for now (groups don't have invite system yet)
+        // TODO: Add group invite rejection when group invite system is implemented
+      }
+
+      // Mark notification as read
+      await onMarkAsRead(notification.id);
+      setInviteHandled(true);
+      await onDelete(notification.id);
+      Alert.alert('Declined', 'Invitation declined');
+    } catch (err: any) {
+      console.error('Failed to decline invite:', err);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to decline invitation');
+    } finally {
+      setIsDeclining(false);
+    }
+  };
+
+  const isInvitation = notification.type === 'channel_invite' || notification.type === 'group_invite';
+
   return (
     <TouchableOpacity
       onPress={handleMarkAsRead}
@@ -179,6 +248,41 @@ export default function NotificationCard({
           <Text style={[styles.time, { color: colors.mutedText }]}>
             {formatTime(notification.createdAt)}
           </Text>
+
+          {/* Invitation Action Buttons */}
+          {isInvitation && !inviteHandled && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.acceptButton, isAccepting && styles.buttonDisabled]}
+                onPress={handleAcceptInvite}
+                disabled={isAccepting || isDeclining}
+              >
+                {isAccepting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.declineButton, isDeclining && styles.buttonDisabled]}
+                onPress={handleDeclineInvite}
+                disabled={isAccepting || isDeclining}
+              >
+                {isDeclining ? (
+                  <ActivityIndicator size="small" color="#666" />
+                ) : (
+                  <>
+                    <Ionicons name="close-circle" size={16} color="#666" />
+                    <Text style={styles.declineButtonText}>Decline</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {isLoading && (
@@ -192,10 +296,10 @@ export default function NotificationCard({
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
-    marginVertical: 8,
-    paddingHorizontal: 12,
+    marginVertical: 6,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
   },
   header: {
@@ -204,9 +308,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#e3f2fd',
     justifyContent: 'center',
     alignItems: 'center',
@@ -235,14 +339,55 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   title: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
   },
   message: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
   },
   time: {
     fontSize: 11,
     marginTop: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  acceptButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#10b981',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  acceptButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  declineButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  declineButtonText: {
+    color: '#666',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

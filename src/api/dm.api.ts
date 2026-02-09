@@ -63,11 +63,16 @@ export const dmApi = {
     }),
 
   /**
-   * POST /dms/send
+   * POST /dms/conversations/:conversationId/messages
    * Send message (REST endpoint for history, real-time via WebSocket)
    */
   sendMessage: (data: DM.SendMessageRequest) =>
-    apiClient.post<ApiResponse<DM.Message>>('/dms/send', data),
+    apiClient.post<ApiResponse<DM.Message>>(
+      `/dms/conversations/${data.conversationId}/messages`,
+      {
+        content: data.text,
+      }
+    ),
 
   /**
    * POST /dms/:conversationId/read
@@ -82,4 +87,17 @@ export const dmApi = {
    */
   startConversation: (userId: string) =>
     apiClient.post<ApiResponse<DM.Conversation>>('/dms/conversations', { userId }),
+
+  /**
+   * NEW: GET /dms/users/search
+   * Search users by query to start a DM
+   */
+  searchUsers: (query: string) =>
+    apiClient.get<ApiResponse<Array<{ id: string; fullName: string; avatar?: string }>>>(
+      '/dms/users/search',
+      {
+        params: { query },
+      }
+    ),
 };
+

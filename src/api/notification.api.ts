@@ -1,5 +1,6 @@
 import apiClient, { ApiResponse } from './client';
-
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 /**
  * Notification API Types
  */
@@ -7,9 +8,11 @@ export namespace Notification {
   export interface Notification {
     id: string;
     userId: string;
-    type: 'mention' | 'reaction' | 'comment' | 'message' | 'channel_invite' | 'group_invite';
+    type: string;
     title: string;
     message: string;
+    referenceId?: string | null;
+    relatedId?: string | null; // Channel ID or Group ID for invitations
     data?: Record<string, any>;
     isRead: boolean;
     createdAt: string;
@@ -90,4 +93,26 @@ export const notificationApi = {
    */
   updatePreferences: (data: Partial<Notification.NotificationPreferences>) =>
     apiClient.put<ApiResponse<Notification.NotificationPreferences>>('/notifications/preferences', data),
+
+  registerPushToken: (token: string) =>
+    apiClient.post('/notifications/push-token', {
+      token,
+      platform: 'android',
+    }),
+};
+
+export const registerAndroidPushToken = async () => {
+  if (Platform.OS !== 'android') return;
+
+  const { status } = await Notifications.getPermissionsAsync();
+
+  if (status !== 'granted') {
+    const request = await Notifications.requestPermissionsAsync();
+    if (request.status !== 'granted') return;
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const token = tokenData.data;
+
+  await notificationApi.registerPushToken(token);
 };

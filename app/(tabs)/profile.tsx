@@ -20,6 +20,7 @@ import * as Contacts from 'expo-contacts';
 import { useAuthStore } from '../../src/store/auth.store';
 import { authApi } from '../../src/api/auth';
 import { Colors } from '../../constants/theme';
+import { TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 
 const ProfileScreenColors = {
   light: {
@@ -113,10 +114,21 @@ export default function ProfileScreen() {
   const [deviceContacts, setDeviceContacts] = useState<Contacts.Contact[]>([]);
   const [showContacts, setShowContacts] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const [editNameVisible, setEditNameVisible] = useState(false);
+  const [fullNameInput, setFullNameInput] = useState(user?.fullName || '');
+  const [updatingName, setUpdatingName] = useState(false);
 
   // Refresh user data when screen mounts
   useEffect(() => {
-    refreshUser();
+    const loadUserData = async () => {
+      try {
+        await refreshUser();
+        console.log('Profile - User data loaded:', user);
+      } catch (error) {
+        console.error('Profile - Failed to refresh user:', error);
+      }
+    };
+    loadUserData();
   }, []);
 
   // Request permissions on mount
@@ -354,15 +366,23 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        <Text style={[styles.userName, { color: colors.text }]}>  
-          {user.fullName || 'User'}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={[styles.userName, { color: colors.text }]}>
+            {user.fullName || 'User'}
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => {
+              setFullNameInput(user.fullName || '');
+              setEditNameVisible(true);
+            }}
+          >
+            <Ionicons name="pencil" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+        </View>
+
 
         <RoleBadge role={user.role} colors={colors} />
-
-        <Text style={[styles.userEmail, { color: colors.mutedText }]}>
-          {user.email || 'No email'}
-        </Text>
       </View>
 
       {/* Profile Information Section */}
@@ -496,7 +516,7 @@ export default function ProfileScreen() {
 
             <FlatList
               data={deviceContacts}
-              keyExtractor={(item) => item.id || Math.random().toString()}
+              keyExtractor={(item, index) => `contact-${index}`}
               renderItem={({ item }) => (
                 <View style={[styles.contactItem, { borderBottomColor: colors.border }]}>
                   <View style={styles.contactAvatar}>
@@ -537,6 +557,76 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Name Modal */}
+      <Modal
+        visible={editNameVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditNameVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.editModalOverlay}
+        >
+          <View style={[styles.editModal, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.editTitle, { color: colors.text }]}>
+              Update Full Name
+            </Text>
+
+            <TextInput
+              value={fullNameInput}
+              onChangeText={setFullNameInput}
+              placeholder="Enter full name"
+              placeholderTextColor={colors.mutedText}
+              autoFocus
+              style={[
+                styles.inputBox,
+                {
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+            />
+
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                onPress={() => setEditNameVisible(false)}
+                style={styles.cancelBtn}
+              >
+                <Text style={{ color: colors.mutedText }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                disabled={updatingName || !fullNameInput.trim()}
+                onPress={async () => {
+                  try {
+                    setUpdatingName(true);
+                    await authApi.updateProfile({ fullName: fullNameInput.trim() });
+                    await refreshUser();
+                    setEditNameVisible(false);
+                  } catch {
+                    Alert.alert('Error', 'Failed to update name');
+                  } finally {
+                    setUpdatingName(false);
+                  }
+                }}
+                style={[
+                  styles.saveBtn,
+                  (!fullNameInput.trim() || updatingName) && { opacity: 0.6 },
+                ]}
+              >
+                {updatingName ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '600' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
     </ScrollView>
   );
 }
@@ -544,9 +634,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F9FAFB',
   },
   contentContainer: {
     paddingBottom: 32,
+    paddingTop: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -565,9 +657,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 20,
     paddingVertical: 24,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   avatarContainer: {
     marginBottom: 16,
@@ -625,9 +722,14 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 16,
     marginBottom: 24,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 16,
@@ -656,7 +758,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   fieldValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     marginLeft: 28,
   },
@@ -795,4 +897,45 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
   },
+  editModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editModal: {
+    width: '85%',
+    borderRadius: 12,
+    padding: 20,
+  },
+  editTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  inputWrapper: {
+    marginBottom: 20,
+  },
+  inputBox: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 12,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  saveBtn: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+
 });

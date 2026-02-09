@@ -1,23 +1,20 @@
 {
   "expo": {
     "name": "sarvadhi-community",
-    "owner": "sarvadhisolution",
     "slug": "sarvadhi-community",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.jpg",
     "scheme": "sarvadhicommunity",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to take profile photos.",
-        "NSPhotoLibraryUsageDescription": "This app uses the photo library to select profile photos.",
-        "NSContactsUsageDescription": "This app uses contacts to help you connect with friends and colleagues."
-      }
+      "bundleIdentifier": "com.sarvadhisolution.community"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
+      "package": "com.sarvadhisolution.community",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -30,8 +27,11 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "READ_CONTACTS"
-      ]
+        "READ_CONTACTS",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",
@@ -52,9 +52,12 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+    "extra": {
+      "apiUrl": "http://192.168.2.169:3000/api",
+      "router": {},
+      "eas": {
+        "projectId": "25094d6a-9821-44ac-b015-66682172ea50"
+      }
     }
   }
 }

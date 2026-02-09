@@ -80,5 +80,12 @@ export const authApi = {
    */
   updateProfile: (data: Auth.UpdateProfileRequest) =>
     apiClient.put<ApiResponse<Auth.User>>('/auth/profile', data),
+
+  /**
+   * POST /auth/logout
+   * Logout current user
+   */
+  logout: () =>
+    apiClient.post<ApiResponse<void>>('/auth/logout', {}),
 };
 

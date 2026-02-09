@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { groupApi } from '../src/api/group.api';
+import { userApi, UserApi } from '../src/api/user.api';
 
 interface InviteUserModalProps {
   visible: boolean;
@@ -27,44 +29,82 @@ export default function InviteUserModal({
   onClose,
   onUserInvited,
 }: InviteUserModalProps) {
-  const [userId, setUserId] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<UserApi.UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleInvite = async () => {
-    // Validation
-    if (!userId.trim()) {
-      setError('User ID is required');
+  const searchUsers = async (q: string) => {
+    if (!q.trim()) {
+      setResults([]);
       return;
     }
 
-    setError(null);
     setIsLoading(true);
-
     try {
-      const response = await groupApi.inviteUser(groupId, userId.trim());
-
+      const response = await userApi.searchUsers(q);
       if (response.data.success) {
-        Alert.alert('Success', 'User invited successfully');
-        onUserInvited?.();
-        setUserId('');
-        onClose();
+        setResults(response.data.data || []);
       }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to invite user';
-      setError(errorMsg);
+    } catch (error) {
+      console.error('Search error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleClose = () => {
-    if (!isLoading) {
-      setUserId('');
-      setError(null);
-      onClose();
+  const handleQueryChange = (text: string) => {
+    setQuery(text);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => searchUsers(text), 500);
+  };
+
+  const handleInvite = async (userId: string) => {
+    setInvitingId(userId);
+    try {
+      const response = await groupApi.inviteUser(groupId, userId);
+      if (response.data.success) {
+        Alert.alert('Success', 'User invited to group successfully');
+        onUserInvited?.();
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to invite user');
+    } finally {
+      setInvitingId(null);
     }
   };
+
+  const handleClose = () => {
+    setQuery('');
+    setResults([]);
+    onClose();
+  };
+
+  const renderUser = ({ item }: { item: UserApi.UserProfile }) => (
+    <View style={styles.userItem}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>
+          {item.fullName?.charAt(0).toUpperCase() || '?'}
+        </Text>
+      </View>
+      <View style={styles.userInfo}>
+        <Text style={styles.userName}>{item.fullName}</Text>
+        <Text style={styles.userEmail}>{item.email}</Text>
+      </View>
+      <TouchableOpacity
+        style={[styles.inviteButton, invitingId === item.id && styles.buttonDisabled]}
+        onPress={() => handleInvite(item.id)}
+        disabled={!!invitingId}
+      >
+        {invitingId === item.id ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.inviteButtonText}>Invite</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <Modal
@@ -81,69 +121,43 @@ export default function InviteUserModal({
           <View style={styles.modalContent}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity onPress={handleClose} disabled={isLoading}>
+              <TouchableOpacity onPress={handleClose}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
-              <Text style={styles.title}>Invite User</Text>
+              <Text style={styles.title}>Invite to Group</Text>
               <View style={{ width: 24 }} />
             </View>
 
-            {/* Error Banner */}
-            {error && (
-              <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle" size={20} color="#dc2626" />
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity onPress={() => setError(null)}>
-                  <Ionicons name="close" size={18} color="#dc2626" />
-                </TouchableOpacity>
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                value={query}
+                onChangeText={handleQueryChange}
+                placeholder="Search by name or email..."
+                autoFocus
+              />
+            </View>
+
+            {/* Results List */}
+            {isLoading && results.length === 0 ? (
+              <View style={styles.listPadding}>
+                <ActivityIndicator size="small" color="#2563EB" />
               </View>
+            ) : (
+              <FlatList
+                data={results}
+                keyExtractor={(item) => item.id}
+                renderItem={renderUser}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  query.trim() !== '' && !isLoading ? (
+                    <Text style={styles.emptyText}>No users found</Text>
+                  ) : null
+                }
+              />
             )}
-
-            {/* Form */}
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>User ID *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={userId}
-                  onChangeText={setUserId}
-                  placeholder="Enter user ID to invite..."
-                  editable={!isLoading}
-                  autoFocus
-                  autoCapitalize="none"
-                />
-                <Text style={styles.helperText}>
-                  Enter the ID of the user you want to invite to this group
-                </Text>
-              </View>
-            </View>
-
-            {/* Actions */}
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={handleClose}
-                disabled={isLoading}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.inviteButton,
-                  (!userId.trim() || isLoading) && styles.buttonDisabled,
-                ]}
-                onPress={handleInvite}
-                disabled={!userId.trim() || isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.inviteButtonText}>Invite</Text>
-                )}
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -166,92 +180,95 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingTop: 20,
     paddingBottom: 40,
-    maxHeight: '60%',
+    height: '80%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: '#111827',
   },
-  errorBanner: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#fee2e2',
-    padding: 12,
+    backgroundColor: '#F3F4F6',
     marginHorizontal: 20,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     marginBottom: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#fecaca',
   },
-  errorText: {
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
     flex: 1,
-    fontSize: 14,
-    color: '#dc2626',
-  },
-  form: {
-    paddingHorizontal: 20,
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 8,
-    padding: 12,
+    height: 44,
     fontSize: 16,
-    color: '#333',
-    backgroundColor: '#fff',
+    color: '#111827',
   },
-  helperText: {
-    fontSize: 12,
-    color: '#999',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
+  listContent: {
     paddingHorizontal: 20,
-    marginTop: 24,
   },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+  listPadding: {
+    padding: 20,
     alignItems: 'center',
+  },
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#16a34a',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  cancelButtonText: {
-    fontSize: 16,
+  avatarText: {
+    color: '#fff',
     fontWeight: '600',
-    color: '#666',
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  userEmail: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   inviteButton: {
     backgroundColor: '#3b82f6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   inviteButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#6B7280',
+    fontSize: 14,
   },
 });

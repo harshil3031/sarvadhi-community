@@ -12,10 +12,11 @@ import {
   useColorScheme,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, Stack } from 'expo-router';
 import { Notification, notificationApi } from '../../../src/api/notification.api';
 import { Colors } from '../../../constants/theme';
 import NotificationCard from '../../../components/NotificationCard';
+import { useNotificationSocket } from '../../../src/hooks/useNotificationSocket';
 
 const NotificationScreenColors = {
   light: {
@@ -40,6 +41,8 @@ export default function NotificationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const { addNotificationListener } = useNotificationSocket();
 
   const fetchNotifications = async (isRefresh = false) => {
     if (isRefresh) {
@@ -75,6 +78,20 @@ export default function NotificationsScreen() {
       fetchNotifications();
     }, [])
   );
+
+  useEffect(() => {
+    // Real-time updates for notifications list
+    addNotificationListener((notification) => {
+      setNotifications((prev) => {
+        const exists = prev.some((n) => n.id === notification.id);
+        if (exists) return prev;
+        return [notification, ...prev];
+      });
+      if (!notification.isRead) {
+        setUnreadCount((prev) => prev + 1);
+      }
+    });
+  }, [addNotificationListener]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     // Optimistic update
@@ -155,7 +172,7 @@ export default function NotificationsScreen() {
       'Delete All Notifications',
       'Are you sure you want to delete all notifications? This cannot be undone.',
       [
-        { text: 'Cancel', onPress: () => {} },
+        { text: 'Cancel', onPress: () => { } },
         {
           text: 'Delete',
           onPress: async () => {
@@ -203,25 +220,19 @@ export default function NotificationsScreen() {
   );
 
   const renderHeader = () => (
-    <View style={[styles.header, { borderBottomColor: colors.border }]}>
-      <View style={styles.titleSection}>
-        <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
-        {unreadCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unreadCount}</Text>
-          </View>
-        )}
-      </View>
-
-      {unreadCount > 0 && (
-        <TouchableOpacity
-          onPress={handleMarkAllAsRead}
-          style={styles.markAllButton}
-        >
-          <Text style={styles.markAllText}>Mark all as read</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+    <Stack.Screen
+      options={{
+        headerTitle: 'Notifications',
+        headerRight: () => unreadCount > 0 ? (
+          <TouchableOpacity
+            onPress={handleMarkAllAsRead}
+            style={{ marginRight: 8, padding: 8 }}
+          >
+            <Text style={{ color: '#2563EB', fontWeight: '600', fontSize: 13 }}>Mark all as read</Text>
+          </TouchableOpacity>
+        ) : null
+      }}
+    />
   );
 
   const renderFooter = () => {
@@ -242,6 +253,7 @@ export default function NotificationsScreen() {
           <NotificationCard
             notification={item}
             onMarkAsRead={handleMarkAsRead}
+            onDelete={handleDeleteNotification}
           />
         )}
         ListHeaderComponent={renderHeader}

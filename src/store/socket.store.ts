@@ -18,6 +18,7 @@ interface SocketState {
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
+  lastPongAt: number | null;
 
   // Actions
   connect: () => Promise<void>;
@@ -33,6 +34,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
   isConnected: false,
   isConnecting: false,
   error: null,
+  lastPongAt: null,
 
   /**
    * Connect to WebSocket server
@@ -75,6 +77,9 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         transports: ['websocket', 'polling'],
       });
 
+      // Heartbeat ping interval
+      let pingInterval: NodeJS.Timeout | null = null;
+
       // Connection successful
       newSocket.on('connect', () => {
         console.log('[Socket] Connected:', newSocket.id);
@@ -84,6 +89,16 @@ export const useSocketStore = create<SocketState>((set, get) => ({
           isConnecting: false,
           error: null,
         });
+
+        // Start heartbeat ping every 15s
+        if (pingInterval) {
+          clearInterval(pingInterval);
+        }
+        pingInterval = setInterval(() => {
+          if (newSocket.connected) {
+            newSocket.emit('ping', { ts: Date.now() });
+          }
+        }, 15000);
       });
 
       // Connection error
@@ -101,6 +116,17 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         set({
           isConnected: false,
         });
+
+        if (pingInterval) {
+          clearInterval(pingInterval);
+          pingInterval = null;
+        }
+      });
+
+      // Pong handler
+      newSocket.on('pong', (payload: any) => {
+        set({ lastPongAt: Date.now() });
+        console.log('[Socket] Pong received', payload);
       });
 
       // Authentication error

@@ -16,17 +16,41 @@ interface GroupCardProps {
   group: Group.Group;
   onLeave?: (groupId: string) => void;
   onDelete?: (groupId: string) => void;
+  onJoin?: (groupId: string) => void;
 }
 
-export default function GroupCard({ group, onLeave, onDelete }: GroupCardProps) {
+export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCardProps) {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [isLeaving, setIsLeaving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const isCreator = user?.id === group.creatorId;
+  const isCreator = user?.id === group.createdBy;
+  const isMember = group.isMember !== false; // Default to true if undefined (backward compat for MyGroups) check handling in parent
+
+  // Actually, better logic: 
+  // If isMember is explicitly false, show Join.
+  const showJoin = group.isMember === false;
 
   const handlePress = () => {
+    // If not a member, maybe don't allow viewing detail? Or allow viewing preview?
+    // For now allow viewing.
     router.push(`/(tabs)/groups/${group.id}` as any);
+  };
+
+  const handleJoin = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await groupApi.joinGroup(group.id);
+      if (response.data.success) {
+        onJoin?.(group.id);
+      }
+    } catch (err: any) {
+      const errorMsg =
+        err.response?.data?.message || err.message || 'Failed to join group';
+      Alert.alert('Error', errorMsg);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleLeave = async () => {
@@ -42,7 +66,7 @@ export default function GroupCard({ group, onLeave, onDelete }: GroupCardProps) 
           text: 'Leave',
           style: 'destructive',
           onPress: async () => {
-            setIsLeaving(true);
+            setIsProcessing(true);
             try {
               const response = await groupApi.leaveGroup(group.id);
               if (response.data.success) {
@@ -53,7 +77,7 @@ export default function GroupCard({ group, onLeave, onDelete }: GroupCardProps) 
                 err.response?.data?.message || err.message || 'Failed to leave group';
               Alert.alert('Error', errorMsg);
             } finally {
-              setIsLeaving(false);
+              setIsProcessing(false);
             }
           },
         },
@@ -74,7 +98,7 @@ export default function GroupCard({ group, onLeave, onDelete }: GroupCardProps) 
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            setIsLeaving(true);
+            setIsProcessing(true);
             try {
               const response = await groupApi.deleteGroup(group.id);
               if (response.data.success) {
@@ -85,7 +109,7 @@ export default function GroupCard({ group, onLeave, onDelete }: GroupCardProps) 
                 err.response?.data?.message || err.message || 'Failed to delete group';
               Alert.alert('Error', errorMsg);
             } finally {
-              setIsLeaving(false);
+              setIsProcessing(false);
             }
           },
         },
@@ -131,13 +155,28 @@ export default function GroupCard({ group, onLeave, onDelete }: GroupCardProps) 
           </View>
 
           <View style={styles.actions}>
-            {isCreator ? (
+            {showJoin ? (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.joinButton]}
+                onPress={handleJoin}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="enter-outline" size={16} color="#fff" />
+                    <Text style={styles.joinButtonText}>Join</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : isCreator ? (
               <TouchableOpacity
                 style={[styles.actionButton, styles.deleteButton]}
                 onPress={handleDelete}
-                disabled={isLeaving}
+                disabled={isProcessing}
               >
-                {isLeaving ? (
+                {isProcessing ? (
                   <ActivityIndicator size="small" color="#dc2626" />
                 ) : (
                   <>
@@ -150,9 +189,9 @@ export default function GroupCard({ group, onLeave, onDelete }: GroupCardProps) 
               <TouchableOpacity
                 style={[styles.actionButton, styles.leaveButton]}
                 onPress={handleLeave}
-                disabled={isLeaving}
+                disabled={isProcessing}
               >
-                {isLeaving ? (
+                {isProcessing ? (
                   <ActivityIndicator size="small" color="#666" />
                 ) : (
                   <>
@@ -176,7 +215,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -203,7 +242,7 @@ const styles = StyleSheet.create({
   },
   name: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: '#333',
   },
@@ -250,8 +289,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  joinButton: {
+    backgroundColor: '#3b82f6',
+  },
+  joinButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
   leaveButton: {
     backgroundColor: '#f5f5f5',

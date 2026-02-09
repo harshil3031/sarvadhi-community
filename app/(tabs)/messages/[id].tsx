@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+// --- imports remain the same ---
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,270 +7,294 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   ActivityIndicator,
   Alert,
+  Platform,
+  Animated,
+  BackHandler,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { DM, dmApi } from '../../../src/api/dm.api';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { useDMSocket } from '../../../src/hooks/useDMSocket';
 import MessageBubble from '../../../components/MessageBubble';
-import TypingIndicator from '../../../components/TypingIndicator';
-
-interface ConversationWithState extends DM.Conversation {
-  typingUser?: string;
-}
 
 export default function DMChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { isConnected, addEventListener, sendMessage, sendTyping, stopTyping, markAsRead } =
-    useDMSocket();
+  const {
+    isConnected,
+    addSocketListener,
+    removeSocketListener,
+    sendMessage,
+    sendTyping,
+    stopTyping,
+    markAsRead,
+    joinConversation,
+    leaveConversation,
+  } = useDMSocket();
 
-  const [conversation, setConversation] = useState<ConversationWithState | null>(null);
   const [messages, setMessages] = useState<DM.Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [messageText, setMessageText] = useState('');
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingAnim = useRef(new Animated.Value(0)).current;
 
-  // Conversation details are set from route params or conversations list
-  // Backend doesn't have a single conversation endpoint
-
-  const fetchMessages = async (isLoadMore = false) => {
-    if (isLoadMore) {
-      if (isLoadingMore || !hasMore) return;
-      setIsLoadingMore(true);
-    } else {
-      setIsLoading(true);
-    }
-
+  // ------------------- Fetch Messages -------------------
+  const fetchMessages = useCallback(async () => {
+    if (!id) return;
+    setIsLoading(true);
     try {
-      const offset = isLoadMore ? messages.length : 0;
-      const response = await dmApi.getConversationMessages(id!, 50, offset);
-
+      const response = await dmApi.getConversationMessages(id, 50, 0);
       if (response.data.success && response.data.data) {
-        const newMessages = response.data.data;
+        setMessages(response.data.data);
+        setTimeout(() => scrollToBottom(false), 100);
 
-        if (isLoadMore) {
-          setMessages((prev) => [...prev, ...newMessages]);
-        } else {
-          setMessages(newMessages);
-          // Scroll to bottom when loading initially
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
-        }
-
-        setHasMore(newMessages.length === 50);
-      }
-
-      // Mark conversation as read
-      if (!isLoadMore) {
-        markAsRead(id!);
+        // Mark as read via API
+        await dmApi.markAsRead(id);
       }
     } catch (err) {
       console.error('Failed to fetch messages:', err);
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
-
-  useEffect(() => {
-    if (id) {
-      fetchMessages();
     }
   }, [id]);
 
+  // ------------------- Join / Leave Conversation -------------------
   useEffect(() => {
-    // Listen for real-time messages
-    addEventListener('dm:message_received', (message: DM.Message) => {
-      if (message.conversationId === id) {
-        setMessages((prev) => [message, ...prev]);
-      }
-    });
+    if (id) {
+      fetchMessages();
+      joinConversation(id);
+    }
+    return () => {
+      if (id) leaveConversation(id);
+    };
+  }, [id, fetchMessages, joinConversation, leaveConversation]);
 
-    // Listen for typing indicators
-    addEventListener('dm:user_typing', (data: any) => {
+  // ------------------- Keyboard Handling -------------------
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      scrollToBottom();
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // ------------------- Scroll -------------------
+  const scrollToBottom = (animated = true) => {
+    if (!flatListRef.current || messages.length === 0) return;
+    flatListRef.current.scrollToEnd({ animated });
+  };
+
+  // ------------------- Socket Listeners -------------------
+  useEffect(() => {
+    const handleMessageReceived = (message: DM.Message) => {
+      if (message.conversationId !== id) return;
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === message.id)) return prev;
+
+        // If message is from me, double check if it replaces an optimistic one
+        // (Usually handled in handleSendMessage, but safe to check here)
+        return [...prev, message];
+      });
+      scrollToBottom();
+      dmApi.markAsRead(id!);
+    };
+
+    const handleUserTyping = (data: any) => {
       if (data.conversationId === id) {
-        setTypingUsers((prev) => {
-          if (!prev.includes(data.userName)) {
-            return [...prev, data.userName];
-          }
-          return prev;
-        });
+        setTypingUsers((prev) => (prev.includes(data.userName) ? prev : [...prev, data.userName]));
       }
-    });
+    };
 
-    // Listen for typing stop
-    addEventListener('dm:typing_stop', (data: any) => {
+    const handleTypingStop = (data: any) => {
       if (data.conversationId === id) {
         setTypingUsers((prev) => prev.filter((name) => name !== data.userName));
       }
-    });
-  }, [addEventListener, id]);
+    };
 
-  const handleSendMessage = async () => {
-    if (!messageText.trim() || !isConnected || isSending) return;
-
-    const text = messageText.trim();
-    setMessageText('');
-
-    // Stop typing indicator
-    if (isTyping) {
-      stopTyping(id!);
-      setIsTyping(false);
-    }
-
-    setIsSending(true);
-
-    try {
-      // Create optimistic message
-      const optimisticMessage: DM.Message = {
-        id: `temp_${Date.now()}`,
-        conversationId: id!,
-        senderId: user?.id || '',
-        sender: {
-          id: user?.id || '',
-          fullName: user?.fullName || 'You',
-        },
-        text,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Add optimistic message immediately
-      setMessages((prev) => [optimisticMessage, ...prev]);
-
-      // Send via API (also emits via WebSocket)
-      const response = await dmApi.sendMessage({
-        conversationId: id!,
-        text,
-      });
-
-      if (response.data.success && response.data.data) {
-        // Replace optimistic message with real one
+    const handleMessageRead = (data: any) => {
+      if (data.conversationId === id) {
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === optimisticMessage.id ? response.data.data! : msg
+            msg.senderId === user?.id && !msg.readAt ? { ...msg, readAt: new Date().toISOString() } : msg
           )
         );
+      }
+    };
 
-        // Emit via socket for real-time delivery
-        sendMessage(id!, text);
+    addSocketListener('dm:message_received', handleMessageReceived);
+    addSocketListener('dm:user_typing', handleUserTyping);
+    addSocketListener('dm:typing_stop', handleTypingStop);
+    addSocketListener('dm:message_read', handleMessageRead);
+
+    return () => {
+      removeSocketListener('dm:message_received', handleMessageReceived);
+      removeSocketListener('dm:user_typing', handleUserTyping);
+      removeSocketListener('dm:typing_stop', handleTypingStop);
+      removeSocketListener('dm:message_read', handleMessageRead);
+    };
+  }, [addSocketListener, removeSocketListener, id, user?.id]);
+
+  useEffect(() => {
+    Animated.timing(typingAnim, {
+      toValue: typingUsers.length > 0 ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [typingUsers]);
+
+  // ------------------- Typing Handler -------------------
+  const handleTyping = (text: string) => {
+    setMessageText(text);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (text.trim()) sendTyping(id!);
+    typingTimeoutRef.current = setTimeout(() => stopTyping(id!), 2000) as unknown as NodeJS.Timeout;
+  };
+
+  // ------------------- Send Message -------------------
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || isSending) return;
+    const text = messageText.trim();
+    setMessageText('');
+    setIsSending(true);
+
+    const optimisticMessage: DM.Message = {
+      id: `temp_${Date.now()}`,
+      conversationId: id!,
+      senderId: user?.id || '',
+      sender: { id: user?.id || '', fullName: user?.fullName || 'You' },
+      text,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    scrollToBottom();
+
+    try {
+      const response = await dmApi.sendMessage({ conversationId: id!, text });
+      if (response.data.success && response.data.data) {
+        const sentMessage = response.data.data;
+        setMessages((prev) => {
+          // If socket already added this message (real ID), just remove temp one
+          if (prev.find((m) => m.id === sentMessage.id)) {
+            return prev.filter((m) => m.id !== optimisticMessage.id);
+          }
+          // Otherwise replace temp with real message
+          return prev.map((msg) => (msg.id === optimisticMessage.id ? sentMessage : msg));
+        });
       }
     } catch (err: any) {
-      const errorMsg =
-        err.response?.data?.message || err.message || 'Failed to send message';
-      Alert.alert('Error', errorMsg);
-
-      // Remove optimistic message on error
-      setMessages((prev) =>
-        prev.filter((msg) => !msg.id.startsWith('temp_'))
-      );
+      Alert.alert('Error', err.message || 'Failed to send message');
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
     } finally {
       setIsSending(false);
     }
   };
 
-  const handleTyping = (text: string) => {
-    setMessageText(text);
+  const otherParticipant = messages.find((msg) => msg.senderId !== user?.id)?.sender;
 
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Send typing indicator if not already sent
-    if (!isTyping && text.trim()) {
-      sendTyping(id!);
-      setIsTyping(true);
-    }
-
-    // Set timeout to stop typing after 2 seconds of inactivity
-    typingTimeoutRef.current = setTimeout(() => {
-      if (isTyping) {
-        stopTyping(id!);
-        setIsTyping(false);
-      }
-    }, 2000) as unknown as NodeJS.Timeout;
+  // ------------------- Hardware Back Handling -------------------
+  const handleGoBack = () => {
+    router.back();
   };
 
-  const otherParticipant = conversation?.participants[0];
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        handleGoBack();
+        return true; // prevent default behavior
+      };
 
-  const renderMessage = ({ item }: { item: DM.Message }) => (
-    <MessageBubble message={item} isOwn={item.senderId === user?.id} />
+      const backHandlerSubscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => backHandlerSubscription.remove();
+    }, [])
   );
 
-  const renderHeader = () => (
-    <>
-      {typingUsers.length > 0 && (
-        <TypingIndicator userName={typingUsers[0]} />
-      )}
-    </>
-  );
-
-  if (isLoading) {
+  if (isLoading)
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
-  }
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity>
+      <Stack.Screen
+        options={{
+          headerTitleAlign: 'left',
+          headerTitle: () => (
+            <TouchableOpacity onPress={() => otherParticipant?.id && router.push(`/user/${otherParticipant.id}`)}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>
+                {otherParticipant?.fullName || 'Conversation'}
+              </Text>
+              <Text style={{ fontSize: 12, color: isConnected ? '#10b981' : '#6b7280' }}>
+                {isConnected ? 'Online' : 'Connecting...'}
+              </Text>
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity
+              style={{ marginRight: 16 }}
+              onPress={() => otherParticipant?.id && router.push(`/user/${otherParticipant.id}`)}
+            >
+              <Ionicons name="information-circle-outline" size={24} color="#4b5563" />
+            </TouchableOpacity>
+          )
+        }}
+      />
 
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>
-            {otherParticipant?.fullName}
-          </Text>
-          <Text style={styles.headerStatus}>
-            {isConnected ? 'Online' : 'Connecting...'}
-          </Text>
-        </View>
 
-        <TouchableOpacity>
-          <Ionicons name="information-circle-outline" size={24} color="#333" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Messages List */}
+      {/* Messages */}
       <FlatList
         ref={flatListRef}
         data={messages}
-        renderItem={renderMessage}
+        renderItem={({ item }) => (
+          <AnimatedMessageBubble message={item} isOwn={item.senderId === user?.id} />
+        )}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.messagesList}
-        inverted
-        onEndReached={() => fetchMessages(true)}
-        onEndReachedThreshold={0.5}
-        scrollEnabled={messages.length > 0}
+        contentContainerStyle={{
+          paddingTop: 16,
+          paddingBottom: 16 + keyboardHeight,
+          flexGrow: 1,
+          justifyContent: messages.length === 0 ? 'center' : 'flex-end',
+        }}
+        keyboardShouldPersistTaps="handled"
       />
 
-      {/* Input Area */}
-      <View style={styles.inputContainer}>
+      {/* Typing indicator */}
+      <Animated.View style={[styles.typingContainer, { opacity: typingAnim }]}>
+        {typingUsers.length > 0 && (
+          <Text style={styles.typingText}>
+            {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+          </Text>
+        )}
+      </Animated.View>
+
+      {/* Input */}
+      <View style={[styles.inputContainer, { marginBottom: keyboardHeight }]}>
         {!isConnected && (
           <View style={styles.connectionWarning}>
             <Ionicons name="warning" size={14} color="#dc2626" />
@@ -278,12 +303,10 @@ export default function DMChatScreen() {
             </Text>
           </View>
         )}
-
         <View style={styles.inputRow}>
           <TouchableOpacity style={styles.attachButton}>
             <Ionicons name="add" size={24} color="#3b82f6" />
           </TouchableOpacity>
-
           <TextInput
             style={styles.messageInput}
             placeholder="Type a message..."
@@ -291,27 +314,18 @@ export default function DMChatScreen() {
             onChangeText={handleTyping}
             multiline
             maxLength={1000}
-            editable={isConnected && !isSending}
+            editable={!isSending}
             placeholderTextColor="#999"
           />
-
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              (!messageText.trim() || !isConnected || isSending) &&
-                styles.sendButtonDisabled,
-            ]}
+            style={[styles.sendButton, (!messageText.trim() || isSending) && styles.sendButtonDisabled]}
             onPress={handleSendMessage}
-            disabled={!messageText.trim() || !isConnected || isSending}
+            disabled={!messageText.trim() || isSending}
           >
             {isSending ? (
               <ActivityIndicator size="small" color="#3b82f6" />
             ) : (
-              <Ionicons
-                name="send"
-                size={20}
-                color={messageText.trim() ? '#3b82f6' : '#ccc'}
-              />
+              <Ionicons name="send" size={20} color={messageText.trim() ? '#3b82f6' : '#ccc'} />
             )}
           </TouchableOpacity>
         </View>
@@ -320,47 +334,60 @@ export default function DMChatScreen() {
   );
 }
 
+// ------------------- Animated Message Bubble -------------------
+function AnimatedMessageBubble({ message, isOwn }: { message: DM.Message; isOwn: boolean }) {
+  const slideAnim = useRef(new Animated.Value(isOwn ? 50 : -50)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ transform: [{ translateX: slideAnim }], opacity: opacityAnim }}>
+      <MessageBubble message={message} isOwn={isOwn} />
+    </Animated.View>
+  );
+}
+
+// ------------------- Styles -------------------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: '#fff',
   },
-  headerInfo: {
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  headerName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  headerStatus: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
-  },
-  messagesList: {
-    paddingVertical: 16,
-  },
+  headerInfo: { flex: 1, marginHorizontal: 12 },
+  headerName: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  headerStatus: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   inputContainer: {
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
+    borderTopColor: '#e5e7eb',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: -2 },
+    shadowRadius: 4,
   },
   connectionWarning: {
     flexDirection: 'row',
@@ -368,52 +395,43 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#fef3c7',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#fcd34d',
+    borderRadius: 8,
+    marginBottom: 4,
   },
-  connectionWarningText: {
-    flex: 1,
-    fontSize: 11,
-    color: '#b45309',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
+  connectionWarningText: { flex: 1, fontSize: 12, color: '#b45309' },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   attachButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
-    flexShrink: 0,
   },
   messageInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 20,
+    borderColor: '#e5e7eb',
+    borderRadius: 22,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#333',
-    maxHeight: 100,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: 15,
+    color: '#111827',
+    maxHeight: 120,
+    backgroundColor: '#fff',
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
-    flexShrink: 0,
   },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
+  sendButtonDisabled: { opacity: 0.5 },
+  typingContainer: { paddingHorizontal: 16, paddingVertical: 4 },
+  typingText: { fontSize: 13, color: '#6b7280', fontStyle: 'italic' },
 });

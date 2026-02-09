@@ -16,10 +16,10 @@ interface CustomRenderOptions {
   // Add any custom options here
 }
 
-const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({
+const AllTheProviders: React.FC<React.PropsWithChildren<{}>> = ({
   children,
 }) => {
-  return <>{children}</>;
+  return <React.Fragment>{children}</React.Fragment>;
   // TODO: Add providers as needed
   // return (
   //   <AuthProvider>
@@ -90,9 +90,9 @@ export const testDataFactories = {
  * Custom matchers
  */
 expect.extend({
-  toHaveBeenCalledWithPost(received, post) {
-    const pass = received.mock.calls.some((call) =>
-      call.some((arg) => arg?.id === post.id)
+  toHaveBeenCalledWithPost(received: any, post: any) {
+    const pass = received.mock.calls.some((call: any[]) =>
+      call.some((arg: any) => arg?.id === post.id)
     );
 
     return {

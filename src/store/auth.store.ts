@@ -49,7 +49,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
+      console.log('[Login] Starting login with email:', email);
       const response = await authApi.login({ email, password });
+      console.log('[Login] Response received:', response.data);
       const { token, user } = response.data.data!;
 
       // Persist token securely
@@ -70,7 +72,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         socketStore.getState().connect();
       }
     } catch (error: any) {
-      const message = error?.response?.data?.message || 'Login failed';
+      console.log('[Login] Error:', error);
+      const message = error?.response?.data?.message || 
+                     error?.data?.message ||
+                     error?.message || 
+                     'Login failed. Please check your credentials.';
       set({
         isLoading: false,
         error: message,
@@ -227,7 +233,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Verify token is still valid by fetching current user
       const response = await authApi.getCurrentUser();
-      const userData = response.data.data?.user || response.data.data;
+      const userData = response.data.data;
 
       set({
         user: userData!,
@@ -272,7 +278,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   refreshUser: async () => {
     try {
       const response = await authApi.getCurrentUser();
-      const userData = response.data.data?.user || response.data.data;
+      const userData = response.data.data;
       set({ user: userData });
     } catch (error) {
       console.error('Failed to refresh user:', error);
