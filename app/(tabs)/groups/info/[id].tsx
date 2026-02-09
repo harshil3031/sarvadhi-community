@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,14 +105,14 @@ export default function GroupInfoScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563EB" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ title: 'Group Info', headerBackTitle: 'Back' }} />
 
       <View style={styles.card}>
@@ -141,7 +142,7 @@ export default function GroupInfoScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

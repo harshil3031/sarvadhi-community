@@ -10,6 +10,7 @@ import {
   Alert,
   Dimensions,
   useColorScheme,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, Stack } from 'expo-router';
@@ -245,7 +246,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
@@ -280,7 +281,7 @@ export default function NotificationsScreen() {
           <Text style={styles.deleteAllText}>Delete All</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

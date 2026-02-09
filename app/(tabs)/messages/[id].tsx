@@ -14,6 +14,7 @@ import {
   Animated,
   BackHandler,
   KeyboardAvoidingView,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -231,12 +232,13 @@ export default function DMChatScreen() {
 
   if (isLoading)
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
+      </SafeAreaView>
     );
 
   return (
+    <SafeAreaView style={{ flex: 1 }}>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -331,6 +333,7 @@ export default function DMChatScreen() {
         </View>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

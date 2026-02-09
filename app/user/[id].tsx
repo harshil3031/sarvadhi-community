@@ -10,6 +10,7 @@ import {
     FlatList,
     RefreshControl,
     Dimensions,
+    SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -119,7 +120,7 @@ export default function UserProfileScreen() {
     );
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <Stack.Screen
                 options={{
                     title: user.fullName,
@@ -149,7 +150,7 @@ export default function UserProfileScreen() {
                 }
                 contentContainerStyle={styles.listContent}
             />
-        </View>
+        </SafeAreaView>
     );
 }
 

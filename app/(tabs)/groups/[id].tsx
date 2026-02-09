@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
@@ -242,7 +243,7 @@ export default function GroupDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Animated.FlatList
         data={group?.isMember ? posts : []}
         renderItem={renderPost}
@@ -289,7 +290,7 @@ export default function GroupDetailScreen() {
           onUserInvited={fetchGroup}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

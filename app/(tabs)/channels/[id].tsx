@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Pressable,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -219,16 +220,16 @@ export default function ChannelDetailScreen() {
   // Loading state
   if (isLoading && posts.length === 0) {
     return (
-      <View style={styles.centerContainer}>
+      <SafeAreaView style={styles.centerContainer}>
         <Stack.Screen options={{ title: 'Loading...' }} />
         <ActivityIndicator size="large" color="#3B82F6" />
         <Text style={styles.loadingText}>Loading posts...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           title: channel?.name || 'Channel Feed',
@@ -330,7 +331,7 @@ export default function ChannelDetailScreen() {
         channelId={id}
         onPostCreated={handlePostCreated}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

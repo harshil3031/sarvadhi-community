@@ -12,6 +12,7 @@ import {
   Image,
   Modal,
   FlatList,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -319,7 +320,7 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <View
+      <SafeAreaView
         style={[
           styles.container,
           { backgroundColor: colors.background },
@@ -331,11 +332,12 @@ export default function ProfileScreen() {
             Loading profile...
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
@@ -628,6 +630,7 @@ export default function ProfileScreen() {
       </Modal>
 
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

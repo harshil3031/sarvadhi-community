@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,14 +116,14 @@ export default function ChannelInfoScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563EB" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           title: 'Channel Info',
@@ -164,7 +165,7 @@ export default function ChannelInfoScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

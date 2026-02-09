@@ -1,4 +1,4 @@
-import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator, Pressable, Platform, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator, Pressable, Platform, TouchableOpacity, SafeAreaView } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -73,7 +73,7 @@ export default function FeedScreen() {
   const defaultChannelId = joinedChannels.length > 0 ? joinedChannels[0].id : undefined;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: "Feed",
@@ -154,7 +154,7 @@ export default function FeedScreen() {
         availableChannels={joinedChannels} // Allow selection
         onPostCreated={handlePostCreated}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Alert,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -135,15 +136,15 @@ export default function ChannelsScreen() {
 
   if (isLoading && channels.length === 0) {
     return (
-      <View style={styles.centerContainer}>
+      <SafeAreaView style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#3B82F6" />
         <Text style={styles.loadingText}>Loading channels...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: 'Channels',
@@ -185,7 +186,7 @@ export default function ChannelsScreen() {
         onClose={() => setIsCreateModalVisible(false)}
         onChannelCreated={() => fetchChannels()}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

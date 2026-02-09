@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, Stack } from 'expo-router';
@@ -137,7 +138,7 @@ export default function GroupsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: 'Groups',
@@ -195,7 +196,7 @@ export default function GroupsScreen() {
         onClose={() => setShowCreateModal(false)}
         onGroupCreated={handleGroupCreated}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

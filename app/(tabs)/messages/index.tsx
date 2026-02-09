@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   Modal,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -229,14 +230,14 @@ export default function MessagesScreen() {
 
   if (isLoading && !isRefreshing) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -290,7 +291,7 @@ export default function MessagesScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

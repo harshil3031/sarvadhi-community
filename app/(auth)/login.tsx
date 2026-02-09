@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 // import * as WebBrowser from 'expo-web-browser';
@@ -168,6 +169,7 @@ export default function LoginScreen() {
   const isButtonDisabled = isLoading || storeLoading;
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -276,6 +278,7 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

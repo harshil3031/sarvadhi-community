@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
+    SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
@@ -137,6 +138,7 @@ export default function SearchScreen() {
     ];
 
     return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -195,6 +197,7 @@ export default function SearchScreen() {
                 />
             )}
         </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
