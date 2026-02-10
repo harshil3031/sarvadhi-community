@@ -8,19 +8,19 @@ export const handleNotificationNavigation = (data: any) => {
     case 'post_reaction':
     case 'post_mention':
     case 'comment_mention':
-      router.push(`/post/${data.referenceId}`);
+      router.push(`/(tabs)/feed/post/${data.referenceId}`);
       break;
 
     case 'dm_message':
-      router.push(`/dm/${data.referenceId}`);
+      router.push(`/(tabs)/messages/${data.referenceId}`);
       break;
 
     case 'channel_invite':
-      router.push(`/channels/${data.referenceId}`);
+      router.push(`/(tabs)/channels/${data.referenceId}`);
       break;
 
     case 'group_invite':
-      router.push(`/groups/${data.referenceId}`);
+      router.push(`/(tabs)/groups/${data.referenceId}`);
       break;
 
     default:

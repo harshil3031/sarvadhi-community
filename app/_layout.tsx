@@ -48,9 +48,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import Constants from 'expo-constants';
 import { Platform, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import messaging from '@react-native-firebase/messaging';
+import Toast from 'react-native-toast-message';
 
 import { useAuthStore } from '../src/store/auth.store';
-import { registerAndroidPushToken, Notification } from '../src/api/notification.api';
+import { registerPushToken, setupAndroidNotificationChannel, setupIOSNotificationSound, Notification } from '../src/api/notification.api';
 import { handleNotificationNavigation } from '../src/utils/notificationNavigation';
 import { useNotificationSocket } from '../src/hooks/useNotificationSocket';
 import { useNotificationStore } from '../src/store/notification.store';
@@ -97,8 +100,10 @@ export default function RootLayout() {
 
     (async () => {
       try {
-        const token = await registerAndroidPushToken();
-        console.log('Push token registered:', token);
+        await setupAndroidNotificationChannel();
+        await setupIOSNotificationSound();
+        await registerPushToken();
+        console.log('Push token registered and notification channels configured');
       } catch (err) {
         console.log('Failed to register push token:', err);
       }
@@ -116,6 +121,9 @@ export default function RootLayout() {
     // Listen for real-time notifications via socket
     addNotificationListener((notification) => {
       console.log('Received real-time notification:', notification);
+
+      // 🎯 Add haptic feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       // Update global unread count
       incrementUnreadCount();
@@ -137,12 +145,12 @@ export default function RootLayout() {
     (async () => {
       const Notifications = await import('expo-notifications');
 
-      // Global handler for foreground notifications
+      // Global handler for foreground notifications with enhanced sound settings
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
           shouldShowAlert: true,
           shouldPlaySound: true,
-          shouldSetBadge: false,
+          shouldSetBadge: true, // Enable badge update on iOS
           shouldShowBanner: true,
           shouldShowList: true,
         }),
@@ -158,6 +166,48 @@ export default function RootLayout() {
 
     return () => {
       notificationListener.current?.remove();
+    };
+  }, []);
+
+  /* -------------------- FCM HANDLERS (DEEP LINK) -------------------- */
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    const unsubscribeOnMessage = messaging().onMessage(async (remoteMessage: any) => {
+      try {
+        const Notifications = await import('expo-notifications');
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: remoteMessage.notification?.title ?? 'Notification',
+            body: remoteMessage.notification?.body ?? '',
+            data: remoteMessage.data ?? {},
+            sound: 'default',
+          },
+          trigger: null,
+        });
+      } catch (error) {
+        console.warn('Failed to display foreground notification:', error);
+      }
+    });
+
+    const unsubscribeOpened = messaging().onNotificationOpenedApp((remoteMessage: any) => {
+      if (remoteMessage?.data) {
+        handleNotificationNavigation(remoteMessage.data);
+      }
+    });
+
+    messaging()
+      .getInitialNotification()
+      .then((remoteMessage: any) => {
+        if (remoteMessage?.data) {
+          handleNotificationNavigation(remoteMessage.data);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      unsubscribeOnMessage();
+      unsubscribeOpened();
     };
   }, []);
 
@@ -182,6 +232,8 @@ export default function RootLayout() {
         }}
         onClose={() => setActiveNotification(null)}
       />
+
+      <Toast />
     </View>
   );
 }

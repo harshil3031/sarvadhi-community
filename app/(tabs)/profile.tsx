@@ -20,6 +20,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Contacts from 'expo-contacts';
 import { useAuthStore } from '../../src/store/auth.store';
 import { authApi } from '../../src/api/auth';
+import { notificationApi } from '../../src/api/notification.api';
+import Toast from 'react-native-toast-message';
 import { Colors } from '../../constants/theme';
 import { TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 
@@ -118,6 +120,7 @@ export default function ProfileScreen() {
   const [editNameVisible, setEditNameVisible] = useState(false);
   const [fullNameInput, setFullNameInput] = useState(user?.fullName || '');
   const [updatingName, setUpdatingName] = useState(false);
+  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
 
   // Refresh user data when screen mounts
   useEffect(() => {
@@ -318,6 +321,29 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleSendTestPush = async () => {
+    if (isSendingTestPush) return;
+    setIsSendingTestPush(true);
+    try {
+      await notificationApi.sendTestPush('Test Notification', 'This is a test push from Profile');
+      Toast.show({
+        type: 'success',
+        text1: 'Sent',
+        text2: 'Test push notification sent',
+        visibilityTime: 2000,
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error?.response?.data?.message || 'Failed to send test push',
+        visibilityTime: 3000,
+      });
+    } finally {
+      setIsSendingTestPush(false);
+    }
+  };
+
   if (!user) {
     return (
       <SafeAreaView
@@ -468,6 +494,24 @@ export default function ProfileScreen() {
             {deviceContacts.length} contacts loaded
           </Text>
         )}
+      </View>
+
+      {/* Test Push Section */}
+      <View style={styles.testPushSection}>
+        <TouchableOpacity
+          onPress={handleSendTestPush}
+          disabled={isSendingTestPush}
+          style={[styles.testPushButton, isSendingTestPush && styles.testPushButtonDisabled]}
+        >
+          {isSendingTestPush ? (
+            <ActivityIndicator size="small" color="#2563EB" />
+          ) : (
+            <>
+              <Ionicons name="notifications-outline" size={20} color="#2563EB" />
+              <Text style={styles.testPushButtonText}>Send Test Push</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Logout Section */}
@@ -793,6 +837,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,
+  },
+  testPushSection: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+  },
+  testPushButton: {
+    flexDirection: 'row',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#2563EB',
+  },
+  testPushButtonDisabled: {
+    opacity: 0.6,
+  },
+  testPushButtonText: {
+    color: '#2563EB',
+    fontSize: 16,
+    fontWeight: '600',
   },
   logoutSection: {
     marginHorizontal: 16,

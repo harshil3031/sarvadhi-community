@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "jsEngine": "hermes",
     "ios": {
-      "bundleIdentifier": "com.sarvadhisolution.community"
+      "bundleIdentifier": "com.sarvadhisolution.community",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "googleServicesFile": "./google-services.json",

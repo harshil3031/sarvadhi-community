@@ -9,17 +9,19 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Group, groupApi } from '../src/api/group.api';
 import { useAuthStore } from '../src/store';
 
 interface GroupCardProps {
   group: Group.Group;
-  onLeave?: (groupId: string) => void;
-  onDelete?: (groupId: string) => void;
-  onJoin?: (groupId: string) => void;
+  onLeave?: (groupId: string) => Promise<void>;
+  onDelete?: (groupId: string) => Promise<void>;
+  onJoin?: (groupId: string) => Promise<void>;
+  isLoading?: boolean;
 }
 
-export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCardProps) {
+export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading = false }: GroupCardProps) {
   const router = useRouter();
   const { user } = useAuthStore();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -47,7 +49,12 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCar
     } catch (err: any) {
       const errorMsg =
         err.response?.data?.message || err.message || 'Failed to join group';
-      Alert.alert('Error', errorMsg);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMsg,
+        visibilityTime: 3000,
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -75,7 +82,12 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCar
             } catch (err: any) {
               const errorMsg =
                 err.response?.data?.message || err.message || 'Failed to leave group';
-              Alert.alert('Error', errorMsg);
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: errorMsg,
+                visibilityTime: 3000,
+              });
             } finally {
               setIsProcessing(false);
             }
@@ -107,7 +119,12 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCar
             } catch (err: any) {
               const errorMsg =
                 err.response?.data?.message || err.message || 'Failed to delete group';
-              Alert.alert('Error', errorMsg);
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: errorMsg,
+                visibilityTime: 3000,
+              });
             } finally {
               setIsProcessing(false);
             }
@@ -159,9 +176,9 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCar
               <TouchableOpacity
                 style={[styles.actionButton, styles.joinButton]}
                 onPress={handleJoin}
-                disabled={isProcessing}
+                disabled={isLoading || isProcessing}
               >
-                {isProcessing ? (
+                {isLoading || isProcessing ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
@@ -174,9 +191,9 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCar
               <TouchableOpacity
                 style={[styles.actionButton, styles.deleteButton]}
                 onPress={handleDelete}
-                disabled={isProcessing}
+                disabled={isLoading || isProcessing}
               >
-                {isProcessing ? (
+                {isLoading || isProcessing ? (
                   <ActivityIndicator size="small" color="#dc2626" />
                 ) : (
                   <>
@@ -189,9 +206,9 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin }: GroupCar
               <TouchableOpacity
                 style={[styles.actionButton, styles.leaveButton]}
                 onPress={handleLeave}
-                disabled={isProcessing}
+                disabled={isLoading || isProcessing}
               >
-                {isProcessing ? (
+                {isLoading || isProcessing ? (
                   <ActivityIndicator size="small" color="#666" />
                 ) : (
                   <>

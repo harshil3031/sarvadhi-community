@@ -7,10 +7,10 @@ import {
   Modal,
   Animated,
   Dimensions,
-  Alert,
   LayoutChangeEvent,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
 import { reactionApi } from '../src/api/reaction.api';
 
 interface ReactionBarProps {
@@ -105,7 +105,12 @@ export default function ReactionBar({
     } catch {
       setUserReaction(prevReaction);
       setCount(prevCount);
-      Alert.alert('Error', 'Failed to update reaction');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update reaction',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsUpdating(false);
     }

@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Post } from '../src/api/posts';
 import { postApi } from '../src/api/posts';
 import { reactionApi, Reaction } from '../src/api/reaction.api';
@@ -99,7 +100,12 @@ export default function PostCard({
 
       onPostUpdated?.({ ...post, isPinned: !post.isPinned });
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to update pin');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.response?.data?.message || 'Failed to update pin',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsPinning(false);
     }
@@ -117,7 +123,12 @@ export default function PostCard({
             await postApi.deletePost(post.id);
             onPostDeleted?.(post.id);
           } catch (err: any) {
-            Alert.alert('Error', 'Failed to delete post');
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Failed to delete post',
+              visibilityTime: 3000,
+            });
             setIsDeleting(false);
           }
         },

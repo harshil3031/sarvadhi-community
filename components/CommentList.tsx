@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { commentApi, Comment } from '../src/api/comment.api';
 import { useAuthStore } from '../src/store';
 
@@ -67,7 +68,12 @@ export default function CommentList({
       }
     } catch (error: any) {
       console.error('Failed to fetch comments:', error);
-      Alert.alert('Error', 'Failed to load comments');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load comments',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -88,12 +94,22 @@ export default function CommentList({
   const handleAddComment = async () => {
     const content = newComment.trim();
     if (!content) {
-      Alert.alert('Error', 'Comment cannot be empty');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Comment cannot be empty',
+        visibilityTime: 3000,
+      });
       return;
     }
 
     if (content.length > 2000) {
-      Alert.alert('Error', 'Comment is too long (max 2000 characters)');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Comment is too long (max 2000 characters)',
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -110,7 +126,12 @@ export default function CommentList({
         onCommentCountChange?.(commentCount + 1);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add comment');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.response?.data?.message || 'Failed to add comment',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +152,12 @@ export default function CommentList({
               setComments(prev => prev.filter(c => c.id !== commentId));
               onCommentCountChange?.(Math.max(0, commentCount - 1));
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to delete comment');
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: error.response?.data?.message || 'Failed to delete comment',
+                visibilityTime: 3000,
+              });
             }
           },
         },

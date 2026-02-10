@@ -4,12 +4,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   useColorScheme,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Notification } from '../src/api/notification.api';
 import { channelApi } from '../src/api/channels';
 import { groupApi } from '../src/api/group.api';
@@ -117,7 +117,12 @@ export default function NotificationCard({
       await onMarkAsRead(notification.id);
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
-      Alert.alert('Error', 'Failed to update notification');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update notification',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +130,12 @@ export default function NotificationCard({
 
   const handleAcceptInvite = async () => {
     if (!notification.relatedId) {
-      Alert.alert('Error', 'Invalid invitation');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Invalid invitation',
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -134,19 +144,34 @@ export default function NotificationCard({
       if (notification.type === 'channel_invite') {
         // Use acceptInvite for channel invitations
         await channelApi.acceptInvite(notification.relatedId);
-        Alert.alert('Success', 'Joined channel successfully!');
-        router.push(`/channels/${notification.relatedId}`);
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Joined channel successfully!',
+          visibilityTime: 2000,
+        });
+        router.push(`/(tabs)/channels/${notification.relatedId}`);
       } else if (notification.type === 'group_invite') {
         await groupApi.joinGroup(notification.relatedId);
-        Alert.alert('Success', 'Joined group successfully!');
-        router.push(`/groups/${notification.relatedId}`);
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Joined group successfully!',
+          visibilityTime: 2000,
+        });
+        router.push(`/(tabs)/groups/${notification.relatedId}`);
       }
       setInviteHandled(true);
       await onMarkAsRead(notification.id);
       await onDelete(notification.id);
     } catch (err: any) {
       console.error('Failed to accept invite:', err);
-      Alert.alert('Error', err.response?.data?.message || 'Failed to accept invitation');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.response?.data?.message || 'Failed to accept invitation',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsAccepting(false);
     }
@@ -154,7 +179,12 @@ export default function NotificationCard({
 
   const handleDeclineInvite = async () => {
     if (!notification.relatedId) {
-      Alert.alert('Error', 'Invalid invitation');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Invalid invitation',
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -172,10 +202,20 @@ export default function NotificationCard({
       await onMarkAsRead(notification.id);
       setInviteHandled(true);
       await onDelete(notification.id);
-      Alert.alert('Declined', 'Invitation declined');
+      Toast.show({
+        type: 'success',
+        text1: 'Declined',
+        text2: 'Invitation declined',
+        visibilityTime: 2000,
+      });
     } catch (err: any) {
       console.error('Failed to decline invite:', err);
-      Alert.alert('Error', err.response?.data?.message || 'Failed to decline invitation');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.response?.data?.message || 'Failed to decline invitation',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsDeclining(false);
     }
@@ -183,9 +223,26 @@ export default function NotificationCard({
 
   const isInvitation = notification.type === 'channel_invite' || notification.type === 'group_invite';
 
+  const handlePress = async () => {
+    // Mark as read first
+    await handleMarkAsRead();
+
+    // Navigate based on type
+    if (notification.type === 'dm_message' && notification.referenceId) {
+      router.push(`/(tabs)/messages/${notification.referenceId}`);
+    } else if (notification.type === 'post_comment' || notification.type === 'post_reaction' || notification.type === 'post_mention') {
+      if (notification.referenceId) {
+        router.push(`/(tabs)/feed/post/${notification.referenceId}`);
+      }
+    } else if (isInvitation) {
+      // Invitation cards handle their own navigation via accept/decline
+      return;
+    }
+  };
+
   return (
     <TouchableOpacity
-      onPress={handleMarkAsRead}
+      onPress={handlePress}
       activeOpacity={0.7}
       disabled={isLoading}
       style={[
@@ -222,6 +279,13 @@ export default function NotificationCard({
             </Text>
             {!notification.isRead && (
               <View style={styles.unreadDot} />
+            )}
+            {(notification as any).groupCount > 1 && (
+              <View style={styles.groupBadge}>
+                <Text style={styles.groupBadgeText}>
+                  {(notification as any).groupCount}
+                </Text>
+              </View>
             )}
           </View>
 
@@ -337,6 +401,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#2563EB',
     marginLeft: 'auto',
+  },
+  groupBadge: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    marginLeft: 'auto',
+  },
+  groupBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   title: {
     fontSize: 15,

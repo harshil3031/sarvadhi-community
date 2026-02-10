@@ -7,11 +7,11 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, Stack } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Group, groupApi } from '../../../src/api/group.api';
 import GroupCard from '../../../components/GroupCard';
 import CreateGroupModal from '../../../components/CreateGroupModal';
@@ -22,6 +22,7 @@ export default function GroupsScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'my' | 'explore'>('my');
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
   const fetchGroups = async (isRefresh = false) => {
     if (isRefresh) setIsRefreshing(true);
@@ -45,6 +46,12 @@ export default function GroupsScreen() {
       }
     } catch (err) {
       console.error('Failed to fetch groups:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load groups. Please try again.',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -66,30 +73,98 @@ export default function GroupsScreen() {
       // Switch to my groups to see it
       setActiveTab('my');
     }
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Group created successfully!',
+      visibilityTime: 2000,
+    });
   };
 
-  const handleGroupLeave = (groupId: string) => {
-    if (activeTab === 'my') {
-      setGroups(prev => prev.filter(g => g.id !== groupId));
-    } else {
-      // In explore, if we leave (not possible as we aren't member), but just in case
-      fetchGroups();
+  const handleGroupLeave = async (groupId: string) => {
+    setLoadingActionId(groupId);
+    try {
+      const response = await groupApi.leaveGroup(groupId);
+      if (response.data.success) {
+        setGroups(prev => prev.filter(g => g.id !== groupId));
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Left group successfully!',
+          visibilityTime: 2000,
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to leave group:', err);
+      const errorMsg = err.response?.data?.message || 'Failed to leave group. Please try again.';
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMsg,
+        visibilityTime: 3000,
+      });
+    } finally {
+      setLoadingActionId(null);
     }
   };
 
-  const handleGroupDelete = (groupId: string) => {
-    setGroups(prev => prev.filter(g => g.id !== groupId));
+  const handleGroupDelete = async (groupId: string) => {
+    setLoadingActionId(groupId);
+    try {
+      const response = await groupApi.deleteGroup(groupId);
+      if (response.data.success) {
+        setGroups(prev => prev.filter(g => g.id !== groupId));
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Group deleted successfully!',
+          visibilityTime: 2000,
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to delete group:', err);
+      const errorMsg = err.response?.data?.message || 'Failed to delete group. Please try again.';
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMsg,
+        visibilityTime: 3000,
+      });
+    } finally {
+      setLoadingActionId(null);
+    }
   };
 
-  const handleGroupJoin = (groupId: string) => {
-    if (activeTab === 'explore') {
-      // Remove from explore list
-      setGroups(prev => prev.filter(g => g.id !== groupId));
-      // Optionally switch to 'my' tab or show success toast
-      Alert.alert('Success', 'Joined group!', [
-        { text: 'View My Groups', onPress: () => setActiveTab('my') },
-        { text: 'Stay', style: 'cancel' }
-      ]);
+  const handleGroupJoin = async (groupId: string) => {
+    setLoadingActionId(groupId);
+    try {
+      const response = await groupApi.joinGroup(groupId);
+      if (response.data.success) {
+        if (activeTab === 'explore') {
+          // Remove from explore list
+          setGroups(prev => prev.filter(g => g.id !== groupId));
+          // Switch to my groups
+          setActiveTab('my');
+        }
+        // Show success toast
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Joined group!',
+          visibilityTime: 2000,
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to join group:', err);
+      const errorMsg = err.response?.data?.message || 'Failed to join group. Please try again.';
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMsg,
+        visibilityTime: 3000,
+      });
+    } finally {
+      setLoadingActionId(null);
     }
   };
 
@@ -99,6 +174,7 @@ export default function GroupsScreen() {
       onLeave={handleGroupLeave}
       onDelete={handleGroupDelete}
       onJoin={handleGroupJoin}
+      isLoading={loadingActionId === item.id}
     />
   );
 
@@ -196,6 +272,7 @@ export default function GroupsScreen() {
         onClose={() => setShowCreateModal(false)}
         onGroupCreated={handleGroupCreated}
       />
+
     </SafeAreaView>
   );
 }

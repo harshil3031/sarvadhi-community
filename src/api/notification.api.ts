@@ -1,5 +1,6 @@
 import apiClient, { ApiResponse } from './client';
 import * as Notifications from 'expo-notifications';
+import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 /**
  * Notification API Types
@@ -94,25 +95,61 @@ export const notificationApi = {
   updatePreferences: (data: Partial<Notification.NotificationPreferences>) =>
     apiClient.put<ApiResponse<Notification.NotificationPreferences>>('/notifications/preferences', data),
 
-  registerPushToken: (token: string) =>
+  registerPushToken: (token: string, platform: 'android' | 'ios') =>
     apiClient.post('/notifications/push-token', {
       token,
-      platform: 'android',
+      platform,
+    }),
+
+  sendTestPush: (title?: string, message?: string) =>
+    apiClient.post<ApiResponse<void>>('/notifications/test-push', {
+      title,
+      message,
     }),
 };
 
-export const registerAndroidPushToken = async () => {
+export const registerPushToken = async () => {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return;
+
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+  if (!enabled) return;
+
+  const token = await messaging().getToken();
+  if (!token) return;
+
+  console.log('Obtained FCM token:', token);
+  await notificationApi.registerPushToken(token, Platform.OS);
+};
+
+export const setupAndroidNotificationChannel = async () => {
   if (Platform.OS !== 'android') return;
 
-  const { status } = await Notifications.getPermissionsAsync();
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'Default',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#3b82f6',
+    sound: 'default',
+  });
 
-  if (status !== 'granted') {
-    const request = await Notifications.requestPermissionsAsync();
-    if (request.status !== 'granted') return;
-  }
+  // Create a high priority channel for important notifications
+  await Notifications.setNotificationChannelAsync('important', {
+    name: 'Important',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#3b82f6',
+    sound: 'default',
+  });
+};
 
-  const tokenData = await Notifications.getExpoPushTokenAsync();
-  const token = tokenData.data;
+export const setupIOSNotificationSound = async () => {
+  if (Platform.OS !== 'ios') return;
 
-  await notificationApi.registerPushToken(token);
+  // Configure iOS notification settings - sound is enabled by default
+  // on iOS and will use the system default notification sound
+  console.log('iOS notification sound configuration enabled');
 };

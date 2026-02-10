@@ -18,6 +18,7 @@ import { Notification, notificationApi } from '../../../src/api/notification.api
 import { Colors } from '../../../constants/theme';
 import NotificationCard from '../../../components/NotificationCard';
 import { useNotificationSocket } from '../../../src/hooks/useNotificationSocket';
+import { useNotificationStore } from '../../../src/store/notification.store';
 
 const NotificationScreenColors = {
   light: {
@@ -44,8 +45,9 @@ export default function NotificationsScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const { addNotificationListener } = useNotificationSocket();
+  const setGlobalUnreadCount = useNotificationStore((state) => state.setUnreadCount);
 
-  const fetchNotifications = async (isRefresh = false) => {
+  const fetchNotifications = async (isRefresh = false): Promise<number> => {
     if (isRefresh) {
       setIsRefreshing(true);
     } else {
@@ -60,14 +62,19 @@ export default function NotificationsScreen() {
         // Calculate unread count
         const unread = response.data.data.filter((n) => !n.isRead).length;
         setUnreadCount(unread);
+        setGlobalUnreadCount(unread);
+        return unread;
       } else {
         // If no data or not an array, set empty array
         setNotifications([]);
         setUnreadCount(0);
+        setGlobalUnreadCount(0);
+        return 0;
       }
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
       Alert.alert('Error', 'Failed to load notifications');
+      return 0;
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -76,7 +83,19 @@ export default function NotificationsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      fetchNotifications().then(async (unread) => {
+        // Clear badge when user opens notifications screen
+        if (unread > 0) {
+          try {
+            await notificationApi.markAllAsRead();
+            setUnreadCount(0);
+            setGlobalUnreadCount(0);
+            setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+          } catch (err) {
+            console.error('Failed to mark all notifications as read on open:', err);
+          }
+        }
+      });
     }, [])
   );
 
@@ -90,9 +109,10 @@ export default function NotificationsScreen() {
       });
       if (!notification.isRead) {
         setUnreadCount((prev) => prev + 1);
+        setGlobalUnreadCount((useNotificationStore.getState().unreadCount || 0) + 1);
       }
     });
-  }, [addNotificationListener]);
+  }, [addNotificationListener, setGlobalUnreadCount]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     // Optimistic update

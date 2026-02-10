@@ -24,6 +24,7 @@ import { Stack } from 'expo-router';
 export default function MessagesScreen() {
   const { user } = useAuthStore();
   const { isConnected, addSocketListener, removeSocketListener, joinConversation } = useDMSocket();
+  const setDMUnreadCount = useDMStore((state) => state.setUnreadCount);
 
   const [conversations, setConversations] = useState<DM.Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +42,13 @@ export default function MessagesScreen() {
     try {
       const response = await dmApi.getConversations(50, 0);
       if (response.data.success && response.data.data) {
-        setConversations(response.data.data);
+        // Sort by most recent first
+        const sorted = response.data.data.sort((a, b) => {
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
+        setConversations(sorted);
+        const totalUnread = sorted.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0);
+        setDMUnreadCount(totalUnread);
       }
     } catch (err) {
       console.error('Failed to fetch conversations:', err);
@@ -76,13 +83,12 @@ export default function MessagesScreen() {
           const totalUnread = updated.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
           useDMStore.getState().setUnreadCount(totalUnread);
 
-          const target = updated.find((c) => c.id === message.conversationId);
-          if (!target) {
-            fetchConversations();
-            return updated;
-          }
+          // Sort by most recent first
+          const sorted = updated.sort((a, b) => {
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          });
 
-          return [target, ...updated.filter((c) => c.id !== message.conversationId)];
+          return sorted;
         });
       };
 
