@@ -22,41 +22,23 @@ import { useAuthStore } from '../../src/store/auth.store';
 import { authApi } from '../../src/api/auth';
 import { notificationApi } from '../../src/api/notification.api';
 import Toast from 'react-native-toast-message';
-import { Colors } from '../../constants/theme';
-import { TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-
-const ProfileScreenColors = {
-  light: {
-    background: '#f9fafb',
-    cardBackground: '#fff',
-    text: '#000',
-    mutedText: '#666',
-    border: '#ddd',
-    danger: '#ef4444',
-  },
-  dark: {
-    background: '#0a0a0a',
-    cardBackground: '#1a1a1a',
-    text: '#fff',
-    mutedText: '#aaa',
-    border: '#333',
-    danger: '#f87171',
-  },
-};
+import { KeyboardAvoidingView, Platform } from 'react-native';
+import { useTheme } from '../../src/theme/ThemeContext';
+import { BaseInput } from '../../src/components/base/BaseInput';
 
 interface ProfileFieldProps {
   icon: string;
   label: string;
   value: string | undefined;
-  colors: typeof ProfileScreenColors['light'];
 }
 
-function ProfileField({ icon, label, value, colors }: ProfileFieldProps) {
+function ProfileField({ icon, label, value }: ProfileFieldProps) {
+  const { colors } = useTheme();
   return (
     <View style={[styles.fieldContainer, { borderBottomColor: colors.border }]}>
       <View style={styles.fieldHeader}>
-        <Ionicons name={icon as any} size={20} color="#2563EB" />
-        <Text style={[styles.fieldLabel, { color: colors.mutedText }]}>
+        <Ionicons name={icon as any} size={20} color={colors.primary} />
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
           {label}
         </Text>
       </View>
@@ -67,18 +49,20 @@ function ProfileField({ icon, label, value, colors }: ProfileFieldProps) {
   );
 }
 
-function RoleBadge({ role, colors }: { role?: string; colors: typeof ProfileScreenColors['light'] }) {
+function RoleBadge({ role }: { role?: string }) {
+  const { colors } = useTheme();
+  
   const getRoleColor = () => {
-    if (!role) return '#6b7280';
+    if (!role) return colors.textSecondary;
     switch (role) {
       case 'admin':
-        return '#dc2626';
+        return colors.error;
       case 'moderator':
-        return '#ea580c';
+        return colors.warning;
       case 'employee':
-        return '#0891b2';
+        return colors.info;
       default:
-        return '#6b7280';
+        return colors.textSecondary;
     }
   };
 
@@ -109,8 +93,7 @@ function RoleBadge({ role, colors }: { role?: string; colors: typeof ProfileScre
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, isLoading, refreshUser } = useAuthStore();
-  const colorScheme = useColorScheme();
-  const colors = ProfileScreenColors[colorScheme ?? 'light'] as typeof ProfileScreenColors['light'];
+  const { colors } = useTheme();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -369,7 +352,7 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.contentContainer}
     >
       {/* Header Section */}
-      <View style={[styles.headerCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+      <View style={[styles.headerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.avatarContainer}
           onPress={showImagePickerOptions}
@@ -405,16 +388,16 @@ export default function ProfileScreen() {
               setEditNameVisible(true);
             }}
           >
-            <Ionicons name="pencil" size={18} color={colors.mutedText} />
+            <Ionicons name="pencil" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
 
-        <RoleBadge role={user.role} colors={colors} />
+        <RoleBadge role={user.role} />
       </View>
 
       {/* Profile Information Section */}
-      <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Account Information
         </Text>
@@ -423,21 +406,18 @@ export default function ProfileScreen() {
           icon="person-outline"
           label="Full Name"
           value={user.fullName || 'N/A'}
-          colors={colors}
         />
 
         <ProfileField
           icon="mail-outline"
           label="Email"
           value={user.email || 'N/A'}
-          colors={colors}
         />
 
         <ProfileField
           icon="shield-checkmark-outline"
           label="Role"
           value={user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'User'}
-          colors={colors}
         />
 
         <ProfileField
@@ -446,20 +426,18 @@ export default function ProfileScreen() {
           value={
             user.authProvider === 'local' ? 'Email & Password' : 'Google'
           }
-          colors={colors}
         />
 
         <ProfileField
           icon="calendar-outline"
           label="Member Since"
           value={formatDate(user.createdAt)}
-          colors={colors}
         />
 
         <View style={[styles.fieldContainer]}>
           <View style={styles.fieldHeader}>
             <Ionicons name="barcode-outline" size={20} color="#2563EB" />
-            <Text style={[styles.fieldLabel, { color: colors.mutedText }]}>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
               User ID
             </Text>
           </View>
@@ -490,7 +468,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         
         {deviceContacts.length > 0 && (
-          <Text style={[styles.contactsCount, { color: colors.mutedText }]}>
+          <Text style={[styles.contactsCount, { color: colors.textSecondary }]}>
             {deviceContacts.length} contacts loaded
           </Text>
         )}
@@ -534,10 +512,10 @@ export default function ProfileScreen() {
 
       {/* Help Section */}
       <View style={[styles.helpSection, { borderTopColor: colors.border }]}>
-        <Text style={[styles.helpText, { color: colors.mutedText }]}>
+        <Text style={[styles.helpText, { color: colors.textSecondary }]}>
           Need help? Contact support at support@sarvadhi.com
         </Text>
-        <Text style={[styles.versionText, { color: colors.mutedText }]}>
+        <Text style={[styles.versionText, { color: colors.textSecondary }]}>
           App Version 1.0.0
         </Text>
       </View>
@@ -550,7 +528,7 @@ export default function ProfileScreen() {
         onRequestClose={() => setShowContacts(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 Device Contacts ({deviceContacts.length})
@@ -572,7 +550,7 @@ export default function ProfileScreen() {
                         style={styles.contactAvatarImage}
                       />
                     ) : (
-                      <Ionicons name="person-circle-outline" size={40} color={colors.mutedText} />
+                      <Ionicons name="person-circle-outline" size={40} color={colors.textSecondary} />
                     )}
                   </View>
                   <View style={styles.contactInfo}>
@@ -580,12 +558,12 @@ export default function ProfileScreen() {
                       {item.name || 'No Name'}
                     </Text>
                     {item.phoneNumbers && item.phoneNumbers.length > 0 && (
-                      <Text style={[styles.contactPhone, { color: colors.mutedText }]}>
+                      <Text style={[styles.contactPhone, { color: colors.textSecondary }]}>
                         📱 {item.phoneNumbers[0].number}
                       </Text>
                     )}
                     {item.emails && item.emails.length > 0 && (
-                      <Text style={[styles.contactEmail, { color: colors.mutedText }]}>
+                      <Text style={[styles.contactEmail, { color: colors.textSecondary }]}>
                         ✉️ {item.emails[0].email}
                       </Text>
                     )}
@@ -594,7 +572,7 @@ export default function ProfileScreen() {
               )}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                     No contacts found
                   </Text>
                 </View>
@@ -615,24 +593,19 @@ export default function ProfileScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.editModalOverlay}
         >
-          <View style={[styles.editModal, { backgroundColor: colors.cardBackground }]}>
+          <View style={[styles.editModal, { backgroundColor: colors.surface }]}>
             <Text style={[styles.editTitle, { color: colors.text }]}>
               Update Full Name
             </Text>
 
-            <TextInput
+            <BaseInput
+              containerStyle={styles.inputWrapper}
               value={fullNameInput}
               onChangeText={setFullNameInput}
               placeholder="Enter full name"
-              placeholderTextColor={colors.mutedText}
               autoFocus
-              style={[
-                styles.inputBox,
-                {
-                  color: colors.text,
-                  borderColor: colors.border,
-                },
-              ]}
+              inputWrapperStyle={{ borderRadius: 8 }}
+              inputTextStyle={{ color: colors.text }}
             />
 
             <View style={styles.editActions}>
@@ -640,7 +613,7 @@ export default function ProfileScreen() {
                 onPress={() => setEditNameVisible(false)}
                 style={styles.cancelBtn}
               >
-                <Text style={{ color: colors.mutedText }}>Cancel</Text>
+                <Text style={{ color: colors.textSecondary }}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity

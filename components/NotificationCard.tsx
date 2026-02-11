@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  useColorScheme,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -13,24 +12,8 @@ import Toast from 'react-native-toast-message';
 import { Notification } from '../src/api/notification.api';
 import { channelApi } from '../src/api/channels';
 import { groupApi } from '../src/api/group.api';
-import { Colors } from '../constants/theme';
-
-const NotificationCardColors = {
-  light: {
-    background: '#f5f5f5',
-    unreadBackground: '#e3f2fd',
-    text: '#000',
-    mutedText: '#666',
-    border: '#ddd',
-  },
-  dark: {
-    background: '#1a1a1a',
-    unreadBackground: '#1e3a5f',
-    text: '#fff',
-    mutedText: '#aaa',
-    border: '#333',
-  },
-};
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseCard } from '../src/components/base/BaseCard';
 
 interface NotificationCardProps {
   notification: Notification.Notification;
@@ -43,8 +26,7 @@ export default function NotificationCard({
   onMarkAsRead,
   onDelete,
 }: NotificationCardProps) {
-  const colorScheme = useColorScheme();
-  const colors = NotificationCardColors[colorScheme ?? 'light'] as typeof NotificationCardColors['light'];
+  const { colors } = useTheme();
   const router = useRouter();
 
   const [isLoading, setIsLoading] = React.useState(false);
@@ -241,26 +223,24 @@ export default function NotificationCard({
   };
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      activeOpacity={0.7}
-      disabled={isLoading}
-      style={[
-        styles.card,
-        {
-          backgroundColor: notification.isRead
-            ? colors.background
-            : colors.unreadBackground,
-          borderColor: colors.border,
-        },
-      ]}
-    >
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.7} disabled={isLoading}>
+      <BaseCard
+        style={[
+          styles.card,
+          {
+            backgroundColor: notification.isRead
+              ? colors.surface
+              : colors.primaryLight,
+            borderColor: colors.border,
+          },
+        ]}
+      >
       <View style={styles.header}>
-        <View style={styles.iconContainer}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.primaryLight }]}>
           <Ionicons
             name={getIconName(notification.type)}
             size={24}
-            color="#2563EB"
+            color={colors.primary}
           />
         </View>
 
@@ -270,7 +250,7 @@ export default function NotificationCard({
               style={[
                 styles.typeLabel,
                 {
-                  color: '#2563EB',
+                  color: colors.primary,
                   fontWeight: notification.isRead ? '500' : '700',
                 },
               ]}
@@ -278,10 +258,10 @@ export default function NotificationCard({
               {getTypeLabel(notification.type)}
             </Text>
             {!notification.isRead && (
-              <View style={styles.unreadDot} />
+              <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
             )}
             {(notification as any).groupCount > 1 && (
-              <View style={styles.groupBadge}>
+              <View style={[styles.groupBadge, { backgroundColor: colors.error }]}>
                 <Text style={styles.groupBadgeText}>
                   {(notification as any).groupCount}
                 </Text>
@@ -303,13 +283,13 @@ export default function NotificationCard({
           </Text>
 
           <Text
-            style={[styles.message, { color: colors.mutedText }]}
+            style={[styles.message, { color: colors.textSecondary }]}
             numberOfLines={2}
           >
             {notification.message}
           </Text>
 
-          <Text style={[styles.time, { color: colors.mutedText }]}>
+          <Text style={[styles.time, { color: colors.textTertiary }]}>
             {formatTime(notification.createdAt)}
           </Text>
 
@@ -317,7 +297,7 @@ export default function NotificationCard({
           {isInvitation && !inviteHandled && (
             <View style={styles.actionButtons}>
               <TouchableOpacity
-                style={[styles.acceptButton, isAccepting && styles.buttonDisabled]}
+                style={[styles.acceptButton, { backgroundColor: colors.success }, isAccepting && styles.buttonDisabled]}
                 onPress={handleAcceptInvite}
                 disabled={isAccepting || isDeclining}
               >
@@ -332,16 +312,16 @@ export default function NotificationCard({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.declineButton, isDeclining && styles.buttonDisabled]}
+                style={[styles.declineButton, { backgroundColor: colors.surfaceSecondary }, isDeclining && styles.buttonDisabled]}
                 onPress={handleDeclineInvite}
                 disabled={isAccepting || isDeclining}
               >
                 {isDeclining ? (
-                  <ActivityIndicator size="small" color="#666" />
+                  <ActivityIndicator size="small" color={colors.textSecondary} />
                 ) : (
                   <>
-                    <Ionicons name="close-circle" size={16} color="#666" />
-                    <Text style={styles.declineButtonText}>Decline</Text>
+                    <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                    <Text style={[styles.declineButtonText, { color: colors.textSecondary }]}>Decline</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -350,9 +330,10 @@ export default function NotificationCard({
         </View>
 
         {isLoading && (
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color={colors.primary} />
         )}
       </View>
+      </BaseCard>
     </TouchableOpacity>
   );
 }
@@ -363,8 +344,6 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
   },
   header: {
     flexDirection: 'row',

@@ -3,7 +3,6 @@ import {
     View,
     Text,
     Modal,
-    TextInput,
     TouchableOpacity,
     StyleSheet,
     KeyboardAvoidingView,
@@ -13,6 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { channelApi, Channel } from '../src/api/channels';
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseInput } from '../src/components/base/BaseInput';
 
 interface CreateChannelModalProps {
     visible: boolean;
@@ -25,6 +26,7 @@ export default function CreateChannelModal({
     onClose,
     onChannelCreated,
 }: CreateChannelModalProps) {
+    const { colors } = useTheme();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [type, setType] = useState<'public' | 'private'>('public');
@@ -91,24 +93,24 @@ export default function CreateChannelModal({
                 style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={styles.backdrop}>
-                    <View style={styles.modalContent}>
+                <View style={[styles.backdrop, { backgroundColor: colors.overlay }] }>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
                         {/* Header */}
                         <View style={styles.header}>
                             <TouchableOpacity onPress={handleClose} disabled={isLoading}>
-                                <Ionicons name="close" size={24} color="#333" />
+                                <Ionicons name="close" size={24} color={colors.text} />
                             </TouchableOpacity>
-                            <Text style={styles.title}>Create Channel</Text>
+                            <Text style={[styles.title, { color: colors.text }]}>Create Channel</Text>
                             <View style={{ width: 24 }} />
                         </View>
 
                         {/* Error Banner */}
                         {error && (
-                            <View style={styles.errorBanner}>
-                                <Ionicons name="alert-circle" size={20} color="#dc2626" />
-                                <Text style={styles.errorText}>{error}</Text>
+                            <View style={[styles.errorBanner, { backgroundColor: `${colors.error}20`, borderColor: `${colors.error}40` }] }>
+                                <Ionicons name="alert-circle" size={20} color={colors.error} />
+                                <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
                                 <TouchableOpacity onPress={() => setError(null)}>
-                                    <Ionicons name="close" size={18} color="#dc2626" />
+                                    <Ionicons name="close" size={18} color={colors.error} />
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -116,9 +118,8 @@ export default function CreateChannelModal({
                         {/* Form */}
                         <View style={styles.form}>
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Channel Name *</Text>
-                                <TextInput
-                                    style={styles.input}
+                                <BaseInput
+                                    label="Channel Name *"
                                     value={name}
                                     onChangeText={setName}
                                     placeholder="e.g. engineering, marketing"
@@ -129,27 +130,24 @@ export default function CreateChannelModal({
                             </View>
 
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Description (Optional)</Text>
-                                <TextInput
-                                    style={[styles.input, styles.textArea]}
+                                <BaseInput
+                                    label="Description (Optional)"
                                     value={description}
                                     onChangeText={setDescription}
                                     placeholder="What's this channel for?"
                                     multiline
-                                    numberOfLines={4}
                                     maxLength={500}
                                     editable={!isLoading}
-                                    textAlignVertical="top"
                                 />
                             </View>
 
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Privacy Type</Text>
+                                <Text style={[styles.label, { color: colors.text }]}>Privacy Type</Text>
                                 <View style={styles.typeSelector}>
                                     <TouchableOpacity
                                         style={[
                                             styles.typeOption,
-                                            type === 'public' && styles.typeOptionActive,
+                                            type === 'public' && [styles.typeOptionActive, { backgroundColor: colors.primary }],
                                         ]}
                                         onPress={() => setType('public')}
                                         disabled={isLoading}
@@ -157,18 +155,20 @@ export default function CreateChannelModal({
                                         <Ionicons
                                             name="globe-outline"
                                             size={20}
-                                            color={type === 'public' ? '#fff' : '#666'}
+                                            color={type === 'public' ? '#fff' : colors.textSecondary}
                                         />
                                         <Text style={[
                                             styles.typeOptionText,
                                             type === 'public' && styles.typeOptionTextActive,
+                                            type === 'public' && { color: '#fff' },
+                                            type !== 'public' && { color: colors.textSecondary },
                                         ]}>Public</Text>
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
                                         style={[
                                             styles.typeOption,
-                                            type === 'private' && styles.typeOptionActive,
+                                            type === 'private' && [styles.typeOptionActive, { backgroundColor: colors.primary }],
                                         ]}
                                         onPress={() => setType('private')}
                                         disabled={isLoading}
@@ -176,15 +176,17 @@ export default function CreateChannelModal({
                                         <Ionicons
                                             name="lock-closed-outline"
                                             size={20}
-                                            color={type === 'private' ? '#fff' : '#666'}
+                                            color={type === 'private' ? '#fff' : colors.textSecondary}
                                         />
                                         <Text style={[
                                             styles.typeOptionText,
                                             type === 'private' && styles.typeOptionTextActive,
+                                            type === 'private' && { color: '#fff' },
+                                            type !== 'private' && { color: colors.textSecondary },
                                         ]}>Private</Text>
                                     </TouchableOpacity>
                                 </View>
-                                <Text style={styles.helperText}>
+                                <Text style={[styles.helperText, { color: colors.textSecondary }]}>
                                     {type === 'public'
                                         ? 'Anyone in the organization can search and join.'
                                         : 'Joining is by invitation or request only.'}
@@ -195,17 +197,18 @@ export default function CreateChannelModal({
                         {/* Actions */}
                         <View style={styles.actions}>
                             <TouchableOpacity
-                                style={[styles.button, styles.cancelButton]}
+                                style={[styles.button, styles.cancelButton, { backgroundColor: colors.surfaceSecondary }]}
                                 onPress={handleClose}
                                 disabled={isLoading}
                             >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={[
                                     styles.button,
                                     styles.createButton,
+                                    { backgroundColor: colors.primary },
                                     (!name.trim() || isLoading) && styles.buttonDisabled,
                                 ]}
                                 onPress={handleCreate}

@@ -15,6 +15,9 @@ import Toast from 'react-native-toast-message';
 import { Group, groupApi } from '../../../src/api/group.api';
 import GroupCard from '../../../components/GroupCard';
 import CreateGroupModal from '../../../components/CreateGroupModal';
+import { useTheme } from '../../../src/theme/ThemeContext';
+import { EmptyState } from '../../../src/components/common/EmptyState';
+import { BaseButton } from '../../../src/components/base/BaseButton';
 
 export default function GroupsScreen() {
   const [groups, setGroups] = useState<Group.Group[]>([]);
@@ -23,6 +26,7 @@ export default function GroupsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'my' | 'explore'>('my');
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const { colors } = useTheme();
 
   const fetchGroups = async (isRefresh = false) => {
     if (isRefresh) setIsRefreshing(true);
@@ -182,31 +186,27 @@ export default function GroupsScreen() {
     if (isLoading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name={activeTab === 'my' ? "people-outline" : "search-outline"} size={64} color="#ccc" />
-        <Text style={styles.emptyTitle}>
-          {activeTab === 'my' ? "No Groups Yet" : "No New Groups"}
-        </Text>
-        <Text style={styles.emptyText}>
-          {activeTab === 'my'
-            ? "Create your first group or explore existing ones"
-            : "You've joined all available groups!"}
-        </Text>
+        <EmptyState
+          icon={activeTab === 'my' ? '👥' : '🔍'}
+          title={activeTab === 'my' ? 'No Groups Yet' : 'No New Groups'}
+          description={
+            activeTab === 'my'
+              ? 'Create your first group or explore existing ones'
+              : "You've joined all available groups!"
+          }
+        />
         {activeTab === 'my' && (
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.emptyButton}
+            <BaseButton
+              label="Create Group"
               onPress={() => setShowCreateModal(true)}
-            >
-              <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.emptyButtonText}>Create Group</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.emptyButton, styles.secondaryButton]}
+              variant="primary"
+            />
+            <BaseButton
+              label="Explore"
               onPress={() => setActiveTab('explore')}
-            >
-              <Ionicons name="compass-outline" size={20} color="#3b82f6" />
-              <Text style={[styles.emptyButtonText, { color: '#3b82f6' }]}>Explore</Text>
-            </TouchableOpacity>
+              variant="secondary"
+            />
           </View>
         )}
       </View>
@@ -214,7 +214,7 @@ export default function GroupsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           headerTitle: 'Groups',
@@ -223,32 +223,32 @@ export default function GroupsScreen() {
               style={{ marginRight: 8, padding: 8 }}
               onPress={() => setShowCreateModal(true)}
             >
-              <Ionicons name="add" size={28} color="#3b82f6" />
+              <Ionicons name="add" size={28} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
       />
 
       {/* Tabs */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'my' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'my' && [styles.activeTab, { borderBottomColor: colors.primary }]]}
           onPress={() => setActiveTab('my')}
         >
-          <Text style={[styles.tabText, activeTab === 'my' && styles.activeTabText]}>My Groups</Text>
+          <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'my' && [styles.activeTabText, { color: colors.primary }]]}>My Groups</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'explore' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'explore' && [styles.activeTab, { borderBottomColor: colors.primary }]]}
           onPress={() => setActiveTab('explore')}
         >
-          <Text style={[styles.tabText, activeTab === 'explore' && styles.activeTabText]}>Explore</Text>
+          <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'explore' && [styles.activeTabText, { color: colors.primary }]]}>Explore</Text>
         </TouchableOpacity>
       </View>
 
       {/* Groups List */}
       {isLoading && !isRefreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82F6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
@@ -261,7 +261,7 @@ export default function GroupsScreen() {
           ]}
           ListEmptyComponent={renderEmpty}
           refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} />
           }
         />
       )}

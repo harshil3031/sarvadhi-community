@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -19,6 +18,8 @@ import { Link } from 'expo-router';
 // import * as Google from 'expo-auth-session/providers/google';
 // import Constants from 'expo-constants';
 import { useAuthStore } from '../../src/store/auth.store';
+import { BaseInput } from '../../src/components/base/BaseInput';
+import { useTheme } from '../../src/theme/ThemeContext';
 
 // Prompt user with browser UI
 // WebBrowser.maybeCompleteAuthSession();
@@ -37,6 +38,7 @@ import { useAuthStore } from '../../src/store/auth.store';
  */
 export default function RegisterScreen() {
   const { register, loginWithGoogle, error, clearError, isLoading: storeLoading } = useAuthStore();
+  const { colors } = useTheme();
   
   // Form state
   const [fullName, setFullName] = useState('');
@@ -193,16 +195,16 @@ export default function RegisterScreen() {
   const isButtonDisabled = isLoading || storeLoading;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: colors.surface }]}>
           {/* Logo */}
           <View style={styles.logoContainer}>
             <Image
@@ -214,14 +216,14 @@ export default function RegisterScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join Sarvadhi Community today</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Join Sarvadhi Community today</Text>
           </View>
 
           {/* Error Messages */}
           {(error || validationError) && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>
+            <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
+              <Text style={[styles.errorText, { color: colors.error }]}>
                 {validationError || error}
               </Text>
             </View>
@@ -229,9 +231,9 @@ export default function RegisterScreen() {
 
           {/* Full Name Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              style={styles.input}
+            <BaseInput
+              label="Full Name"
+              containerStyle={{ marginBottom: 0 }}
               placeholder="Enter your full name"
               value={fullName}
               onChangeText={(text) => {
@@ -245,9 +247,9 @@ export default function RegisterScreen() {
 
           {/* Email Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
+            <BaseInput
+              label="Email"
+              containerStyle={{ marginBottom: 0 }}
               placeholder="Enter your email"
               value={email}
               onChangeText={(text) => {
@@ -262,9 +264,9 @@ export default function RegisterScreen() {
 
           {/* Password Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
+            <BaseInput
+              label="Password"
+              containerStyle={{ marginBottom: 0 }}
               placeholder="Create a password (min 6 characters)"
               value={password}
               onChangeText={(text) => {
@@ -279,9 +281,9 @@ export default function RegisterScreen() {
 
           {/* Confirm Password Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={styles.input}
+            <BaseInput
+              label="Confirm Password"
+              containerStyle={{ marginBottom: 0 }}
               placeholder="Re-enter your password"
               value={confirmPassword}
               onChangeText={(text) => {
@@ -296,14 +298,14 @@ export default function RegisterScreen() {
 
           {/* Register Button */}
           <TouchableOpacity
-            style={[styles.button, styles.primaryButton, isButtonDisabled && styles.buttonDisabled]}
+            style={[styles.button, { backgroundColor: colors.primary }, isButtonDisabled && styles.buttonDisabled]}
             onPress={handleRegister}
             disabled={isButtonDisabled}
           >
             {isLoading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={colors.surface} />
             ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
+              <Text style={[styles.buttonText, { color: colors.surface }]}>Create Account</Text>
             )}
           </TouchableOpacity>
 
@@ -325,10 +327,10 @@ export default function RegisterScreen() {
 
           {/* Login Link */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account? </Text>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity disabled={isButtonDisabled}>
-                <Text style={styles.link}>Sign In</Text>
+                <Text style={[styles.link, { color: colors.primary }]}>Sign In</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -342,7 +344,6 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   scrollContent: {
     flexGrow: 1,
@@ -351,7 +352,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
     marginHorizontal: 16,
     marginVertical: 24,
     borderRadius: 16,
@@ -375,21 +375,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000000',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
   },
   errorContainer: {
-    backgroundColor: '#fee',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: '#c00',
     fontSize: 14,
   },
   inputGroup: {
@@ -398,16 +394,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     borderRadius: 10,
     padding: 14,
     fontSize: 16,
-    backgroundColor: '#ffffff',
   },
   button: {
     borderRadius: 8,
@@ -415,16 +408,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
-  },
-  primaryButton: {
-    backgroundColor: '#2563EB',
     marginTop: 8,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   buttonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -436,20 +425,15 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#dddddd',
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#999999',
     fontSize: 14,
   },
   googleButton: {
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#dddddd',
   },
   googleButtonText: {
-    color: '#000000',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -460,11 +444,9 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#666666',
   },
   link: {
     fontSize: 14,
-    color: '#2563EB',
     fontWeight: '600',
   },
 });

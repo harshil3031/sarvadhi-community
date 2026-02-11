@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
   Keyboard,
   ActivityIndicator,
   Alert,
@@ -23,11 +22,14 @@ import { DM, dmApi } from '../../../src/api/dm.api';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { useDMSocket } from '../../../src/hooks/useDMSocket';
 import MessageBubble from '../../../components/MessageBubble';
+import { BaseInput } from '../../../src/components/base/BaseInput';
+import { useTheme } from '../../../src/theme/ThemeContext';
 
 export default function DMChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
   const {
     isConnected,
     addSocketListener,
@@ -232,15 +234,15 @@ export default function DMChatScreen() {
 
   if (isLoading)
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </SafeAreaView>
     );
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
@@ -249,10 +251,10 @@ export default function DMChatScreen() {
           headerTitleAlign: 'left',
           headerTitle: () => (
             <TouchableOpacity onPress={() => otherParticipant?.id && router.push(`/user/${otherParticipant.id}`)}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>
                 {otherParticipant?.fullName || 'Conversation'}
               </Text>
-              <Text style={{ fontSize: 12, color: isConnected ? '#10b981' : '#6b7280' }}>
+              <Text style={{ fontSize: 12, color: isConnected ? colors.success : colors.textSecondary }}>
                 {isConnected ? 'Online' : 'Connecting...'}
               </Text>
             </TouchableOpacity>
@@ -262,7 +264,7 @@ export default function DMChatScreen() {
               style={{ marginRight: 16 }}
               onPress={() => otherParticipant?.id && router.push(`/user/${otherParticipant.id}`)}
             >
-              <Ionicons name="information-circle-outline" size={24} color="#4b5563" />
+              <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           )
         }}
@@ -287,47 +289,71 @@ export default function DMChatScreen() {
       />
 
       {/* Typing indicator */}
-      <Animated.View style={[styles.typingContainer, { opacity: typingAnim }]}>
+      <Animated.View style={[styles.typingContainer, { opacity: typingAnim }]}> 
         {typingUsers.length > 0 && (
-          <Text style={styles.typingText}>
+          <Text style={[styles.typingText, { color: colors.textSecondary }] }>
             {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
           </Text>
         )}
       </Animated.View>
 
       {/* Input */}
-      <View style={[styles.inputContainer, { marginBottom: keyboardHeight }]}>
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            marginBottom: keyboardHeight,
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            shadowColor: colors.text,
+          },
+        ]}
+      >
         {!isConnected && (
-          <View style={styles.connectionWarning}>
-            <Ionicons name="warning" size={14} color="#dc2626" />
-            <Text style={styles.connectionWarningText}>
+          <View style={[styles.connectionWarning, { backgroundColor: `${colors.warning}20`, borderBottomColor: `${colors.warning}60` }] }>
+            <Ionicons name="warning" size={14} color={colors.warning} />
+            <Text style={[styles.connectionWarningText, { color: colors.warning }]}>
               Reconnecting... Messages will be sent when connected
             </Text>
           </View>
         )}
         <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.attachButton}>
-            <Ionicons name="add" size={24} color="#3b82f6" />
+          <TouchableOpacity style={[styles.attachButton, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name="add" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <TextInput
-            style={styles.messageInput}
+          <BaseInput
+            containerStyle={styles.messageInputContainer}
+            inputWrapperStyle={[
+              styles.messageInputWrapper, 
+              { 
+                borderColor: colors.border, 
+                backgroundColor: '#FFFFFF',
+              }
+            ]}
+            inputTextStyle={[
+              styles.messageInputText, 
+              { 
+                color: '#000000',
+                fontSize: 16,
+              }
+            ]}
             placeholder="Type a message..."
             value={messageText}
             onChangeText={handleTyping}
             multiline
             maxLength={1000}
             editable={!isSending}
-            placeholderTextColor="#999"
+            placeholderTextColor="#999999"
           />
           <TouchableOpacity
-            style={[styles.sendButton, (!messageText.trim() || isSending) && styles.sendButtonDisabled]}
+            style={[styles.sendButton, { backgroundColor: colors.primaryLight }, (!messageText.trim() || isSending) && styles.sendButtonDisabled]}
             onPress={handleSendMessage}
             disabled={!messageText.trim() || isSending}
           >
             {isSending ? (
-              <ActivityIndicator size="small" color="#3b82f6" />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <Ionicons name="send" size={20} color={messageText.trim() ? '#3b82f6' : '#ccc'} />
+              <Ionicons name="send" size={20} color={messageText.trim() ? colors.primary : colors.disabled} />
             )}
           </TouchableOpacity>
         </View>
@@ -414,17 +440,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  messageInput: {
+  messageInputContainer: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  messageInputWrapper: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 22,
     paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    backgroundColor: '#fff',
+    minHeight: 44,
+  },
+  messageInputText: {
     fontSize: 15,
     color: '#111827',
     maxHeight: 120,
-    backgroundColor: '#fff',
+    paddingVertical: 10,
+    minHeight: 44,
   },
   sendButton: {
     width: 42,

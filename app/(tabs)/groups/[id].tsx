@@ -19,11 +19,13 @@ import { useAuthStore } from '../../../src/store';
 import PostCard from '../../../components/PostCard';
 import CreatePostModal from '../../../components/CreatePostModal';
 import InviteUserModal from '../../../components/InviteUserModal';
+import { useTheme } from '../../../src/theme/ThemeContext';
 
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
 
   const [group, setGroup] = useState<Group.Group | null>(null);
   const [members, setMembers] = useState<Group.GroupMember[]>([]);
@@ -37,7 +39,7 @@ export default function GroupDetailScreen() {
   const [isLeavingGroup, setIsLeavingGroup] = useState(false);
 
   const isCreator = user?.id === group?.createdBy;
-  const canInvite = isCreator;
+  const canInvite = isCreator || user?.role === 'admin' || user?.role === 'moderator';
 
   // Animated value for floating button
   const scrollY = useRef(new Animated.Value(0)).current;

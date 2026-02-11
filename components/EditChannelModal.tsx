@@ -3,7 +3,6 @@ import {
     View,
     Text,
     Modal,
-    TextInput,
     TouchableOpacity,
     StyleSheet,
     KeyboardAvoidingView,
@@ -13,6 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { channelApi, Channel } from '../src/api/channels';
+import { BaseInput } from '../src/components/base/BaseInput';
+import { useTheme } from '../src/theme/ThemeContext';
 
 interface EditChannelModalProps {
     visible: boolean;
@@ -27,6 +28,7 @@ export default function EditChannelModal({
     onClose,
     onChannelUpdated,
 }: EditChannelModalProps) {
+    const { colors } = useTheme();
     const [name, setName] = useState(channel.name);
     const [description, setDescription] = useState(channel.description || '');
     const [isLoading, setIsLoading] = useState(false);
@@ -96,9 +98,10 @@ export default function EditChannelModal({
 
                         <View style={styles.form}>
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Channel Name *</Text>
-                                <TextInput
-                                    style={styles.input}
+                                <BaseInput
+                                    label="Channel Name *"
+                                    containerStyle={{ marginBottom: 0 }}
+                                    inputWrapperStyle={styles.input}
                                     value={name}
                                     onChangeText={setName}
                                     placeholder="Enter channel name..."
@@ -108,9 +111,11 @@ export default function EditChannelModal({
                             </View>
 
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Description (Optional)</Text>
-                                <TextInput
-                                    style={[styles.input, styles.textArea]}
+                                <BaseInput
+                                    label="Description (Optional)"
+                                    containerStyle={{ marginBottom: 0 }}
+                                    inputWrapperStyle={styles.input}
+                                    inputTextStyle={styles.textArea}
                                     value={description}
                                     onChangeText={setDescription}
                                     placeholder="What's this channel for?"

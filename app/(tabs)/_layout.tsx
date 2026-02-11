@@ -3,31 +3,35 @@ import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import { useNotificationStore } from "../../src/store/notification.store";
 import { useDMStore } from "../../src/store/dm.store";
+import { useTheme } from "../../src/theme/ThemeContext";
 
 export default function TabLayout() {
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const messageUnreadCount = useDMStore((state) => state.unreadCount);
+  const { colors } = useTheme();
+  
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
         headerShadowVisible: false,
         headerStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.background,
         },
         headerTitleStyle: {
           fontSize: 18,
           fontWeight: "600",
+          color: colors.text,
         },
 
-        tabBarActiveTintColor: "#2563EB",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarHideOnKeyboard: true,
 
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: Platform.OS === "ios" ? 0 : 1,
-          borderTopColor: "#E5E7EB",
+          backgroundColor: colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
           height: Platform.OS === "ios" ? 88 : 60,
           paddingBottom: Platform.OS === "ios" ? 24 : 8,
           paddingTop: 8,
@@ -44,7 +48,7 @@ export default function TabLayout() {
         },
 
         tabBarBadgeStyle: {
-          backgroundColor: "#2563EB",
+          backgroundColor: colors.primary,
           color: "#FFFFFF",
           fontSize: 10,
           fontWeight: "700",
@@ -75,7 +79,7 @@ export default function TabLayout() {
       />
 
       {/* Search */}
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="search"
         options={{
           title: "Search",
@@ -88,7 +92,7 @@ export default function TabLayout() {
             />
           ),
         }}
-      />
+      /> */}
 
       {/* Channels */}
       <Tabs.Screen
@@ -174,6 +178,8 @@ export default function TabLayout() {
 
       {/* Hidden routes */}
       <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="feed/post/[id]" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   );
 }

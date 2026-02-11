@@ -18,6 +18,8 @@ import { postApi } from '../src/api/posts';
 import { reactionApi, Reaction } from '../src/api/reaction.api';
 import ReactionBar from './ReactionBar';
 import CommentList from './CommentList';
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseCard } from '../src/components/base/BaseCard';
 
 interface PostCardProps {
   post: Post.Post;
@@ -35,6 +37,7 @@ export default function PostCard({
   showActions = true,
 }: PostCardProps) {
   const router = useRouter();
+  const { colors } = useTheme();
   const [isPinning, setIsPinning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -146,10 +149,10 @@ export default function PostCard({
 
   if (isDeleting) {
     return (
-      <View style={[styles.card, styles.deletingCard]}>
-        <ActivityIndicator size="small" color="#9CA3AF" />
-        <Text style={styles.deletingText}>Deleting...</Text>
-      </View>
+      <BaseCard style={[styles.card, styles.deletingCard]}>
+        <ActivityIndicator size="small" color={colors.textSecondary} />
+        <Text style={[styles.deletingText, { color: colors.textSecondary }]}>Deleting...</Text>
+      </BaseCard>
     );
   }
 
@@ -160,7 +163,7 @@ export default function PostCard({
     .slice(0, 3);
 
   return (
-    <View style={styles.card}>
+    <BaseCard style={styles.card}>
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -170,26 +173,26 @@ export default function PostCard({
           {post.author?.avatar ? (
             <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatar, { backgroundColor: '#3B82F6' }]}>
+            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
               <Text style={styles.avatarText}>
                 {post.author?.fullName?.charAt(0).toUpperCase() || '?'}
               </Text>
             </View>
           )}
           <View>
-            <Text style={styles.authorName}>{post.author?.fullName || 'Unknown'}</Text>
-            <Text style={styles.time}>{new Date(post.createdAt).toLocaleString()}</Text>
+            <Text style={[styles.authorName, { color: colors.text }]}>{post.author?.fullName || 'Unknown'}</Text>
+            <Text style={[styles.time, { color: colors.textSecondary }]}>{new Date(post.createdAt).toLocaleString()}</Text>
           </View>
         </TouchableOpacity>
         {post.isPinned && (
-          <View style={styles.pinnedBadge}>
-            <Text style={styles.pinnedText}>📌 Pinned</Text>
+          <View style={[styles.pinnedBadge, { backgroundColor: `${colors.warning}20` }]}>
+            <Text style={[styles.pinnedText, { color: colors.warning }]}>📌 Pinned</Text>
           </View>
         )}
       </View>
 
       {/* CONTENT */}
-      <Text style={styles.content}>{post.content}</Text>
+      <Text style={[styles.content, { color: colors.text }]}>{post.content}</Text>
 
       {/* REACTION SUMMARY */}
       {reactionCount > 0 && (
@@ -202,17 +205,17 @@ export default function PostCard({
         >
           <View style={styles.emojiStack}>
             {topEmojis.map((r, i) => (
-              <View key={`${r.emoji}-${i}`} style={styles.emojiBubble}>
+              <View key={`${r.emoji}-${i}`} style={[styles.emojiBubble, { backgroundColor: colors.surfaceSecondary }] }>
                 <Text>{r.emoji}</Text>
               </View>
             ))}
           </View>
-          <Text style={styles.reactionCountText}>{reactionCount}</Text>
+          <Text style={[styles.reactionCountText, { color: colors.textSecondary }]}>{reactionCount}</Text>
         </Pressable>
       )}
 
       {/* FOOTER */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: colors.divider }]}>
         <ReactionBar
           postId={post.id}
           currentReaction={currentReaction}
@@ -220,24 +223,24 @@ export default function PostCard({
           onReactionChange={handleReactionChange}
         />
 
-        <Pressable style={styles.commentButton} onPress={() => setShowComments(true)}>
-          <Text style={styles.commentText}>💬 {commentCount}</Text>
+        <Pressable style={[styles.commentButton, { backgroundColor: colors.surfaceSecondary }]} onPress={() => setShowComments(true)}>
+          <Text style={[styles.commentText, { color: colors.textSecondary }]}>💬 {commentCount}</Text>
         </Pressable>
 
         {showActions && (canPin || canDelete) && (
           <View style={styles.actions}>
             {canPin && (
               <Pressable
-                style={[styles.actionButton, post.isPinned && styles.pinnedAction]}
+                style={[styles.actionButton, { backgroundColor: colors.surfaceSecondary }, post.isPinned && [styles.pinnedAction, { backgroundColor: `${colors.warning}20` }]]}
                 onPress={handlePinToggle}
                 disabled={isPinning}
               >
-                {isPinning ? <ActivityIndicator size="small" color="#3B82F6" /> : <Text>{post.isPinned ? '📌 Unpin' : '📌 Pin'}</Text>}
+                {isPinning ? <ActivityIndicator size="small" color={colors.primary} /> : <Text>{post.isPinned ? '📌 Unpin' : '📌 Pin'}</Text>}
               </Pressable>
             )}
             {canDelete && (
-              <Pressable style={[styles.actionButton, styles.deleteButton]} onPress={handleDelete}>
-                <Text style={styles.deleteButtonText}>🗑️ Delete</Text>
+              <Pressable style={[styles.actionButton, { backgroundColor: `${colors.error}20` }]} onPress={handleDelete}>
+                <Text style={[styles.deleteButtonText, { color: colors.error }]}>🗑️ Delete</Text>
               </Pressable>
             )}
           </View>
@@ -250,16 +253,17 @@ export default function PostCard({
           postId={post.id}
           commentCount={commentCount}
           onCommentCountChange={handleCommentCountChange}
+          onClose={() => setShowComments(false)}
         />
       </Modal>
 
       {/* FULL REACTIONS MODAL */}
       <Modal visible={showReactionModal} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.surface }] }>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Reactions</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Reactions</Text>
             <Pressable onPress={() => setShowReactionModal(false)}>
-              <Text style={styles.modalClose}>✕</Text>
+              <Text style={[styles.modalClose, { color: colors.text }]}>✕</Text>
             </Pressable>
           </View>
 
@@ -274,37 +278,29 @@ export default function PostCard({
                   {item.user?.avatar ? (
                     <Image source={{ uri: item.user.avatar }} style={styles.avatarSmall} />
                   ) : (
-                    <View style={styles.avatarSmall}>
+                    <View style={[styles.avatarSmall, { backgroundColor: colors.primary }]}>
                       <Text style={styles.avatarTextSmall}>
                         {item.user?.fullName?.charAt(0).toUpperCase() || '?'}
                       </Text>
                     </View>
                   )}
-                  <Text style={styles.reactionUserName}>{item.user?.fullName || 'Unknown'}</Text>
+                  <Text style={[styles.reactionUserName, { color: colors.text }]}>{item.user?.fullName || 'Unknown'}</Text>
                   <Text style={styles.reactionEmoji}>{item.emoji}</Text>
-                  {item.userId === currentUserId && <Text style={styles.yourLabel}>(You)</Text>}
+                  {item.userId === currentUserId && <Text style={[styles.yourLabel, { color: colors.primary }]}>(You)</Text>}
                 </View>
               )}
             />
           )}
         </View>
       </Modal>
-    </View>
+    </BaseCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
     marginHorizontal: 16,
     marginVertical: 6,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
   deletingCard: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   deletingText: { color: '#9CA3AF', marginLeft: 8 },

@@ -7,7 +7,6 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
-  TextInput,
   Alert,
   Modal,
   SafeAreaView,
@@ -20,11 +19,15 @@ import { useDMSocket } from '../../../src/hooks/useDMSocket';
 import { useDMStore } from '../../../src/store/dm.store';
 import DMCard from '../../../components/DMCard';
 import { Stack } from 'expo-router';
+import { useTheme } from '../../../src/theme/ThemeContext';
+import { EmptyState } from '../../../src/components/common/EmptyState';
+import { BaseInput } from '../../../src/components/base/BaseInput';
 
 export default function MessagesScreen() {
   const { user } = useAuthStore();
   const { isConnected, addSocketListener, removeSocketListener, joinConversation } = useDMSocket();
   const setDMUnreadCount = useDMStore((state) => state.setUnreadCount);
+  const { colors } = useTheme();
 
   const [conversations, setConversations] = useState<DM.Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -160,25 +163,27 @@ export default function MessagesScreen() {
     if (isLoading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="chatbubble-outline" size={64} color="#ccc" />
-        <Text style={styles.emptyTitle}>No Messages</Text>
-        <Text style={styles.emptyText}>
-          {searchQuery
-            ? 'No conversations match your search'
-            : 'Start a conversation to send messages'}
-        </Text>
+        <EmptyState
+          icon="💬"
+          title="No Messages"
+          description={
+            searchQuery
+              ? 'No conversations match your search'
+              : 'Start a conversation to send messages'
+          }
+        />
       </View>
     );
   };
 
   const renderSearchResults = () => {
     if (!searchQuery) return null;
-    if (isSearchingUsers) return <ActivityIndicator size="small" color="#3b82f6" style={{ margin: 16 }} />;
+    if (isSearchingUsers) return <ActivityIndicator size="small" color={colors.primary} style={{ margin: 16 }} />;
 
     if (searchResults.length === 0) {
       return (
         <View style={{ padding: 16 }}>
-          <Text style={{ color: '#999', textAlign: 'center' }}>No users found</Text>
+          <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>No users found</Text>
         </View>
       );
     }
@@ -186,7 +191,7 @@ export default function MessagesScreen() {
     return searchResults.map((userResult) => (
       <TouchableOpacity
         key={userResult.id}
-        style={styles.userResult}
+        style={[styles.userResult, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
         onPress={async () => {
           try {
             const response = await dmApi.startConversation(userResult.id);
@@ -203,7 +208,7 @@ export default function MessagesScreen() {
           }
         }}
       >
-        <Text style={styles.userResultText}>{userResult.fullName}</Text>
+        <Text style={[styles.userResultText, { color: colors.text }]}>{userResult.fullName}</Text>
       </TouchableOpacity>
     ));
   };
@@ -211,23 +216,21 @@ export default function MessagesScreen() {
   const renderHeader = () => (
     <>
       {!isConnected && (
-        <View style={styles.connectionBanner}>
-          <Ionicons name="warning" size={16} color="#dc2626" />
-          <Text style={styles.connectionText}>Reconnecting...</Text>
+        <View style={[styles.connectionBanner, { backgroundColor: `${colors.error}20`, borderBottomColor: `${colors.error}40` }] }>
+          <Ionicons name="warning" size={16} color={colors.error} />
+          <Text style={[styles.connectionText, { color: colors.error }]}>Reconnecting...</Text>
         </View>
       )}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color="#999" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search conversations or users..."
+        <BaseInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#999"
+          placeholder="Search conversations or users..."
+          style={styles.searchInput}
         />
         {searchQuery && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -236,14 +239,14 @@ export default function MessagesScreen() {
 
   if (isLoading && !isRefreshing) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -251,7 +254,7 @@ export default function MessagesScreen() {
               style={{ padding: 8, marginRight: 8 }}
               onPress={() => setIsNewDMModalVisible(true)}
             >
-              <Ionicons name="create-outline" size={24} color="#3b82f6" />
+              <Ionicons name="create-outline" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -268,7 +271,7 @@ export default function MessagesScreen() {
           styles.listContent,
           filteredConversations.length === 0 && searchQuery === '' && styles.listContentEmpty,
         ]}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} />}
         scrollEnabled={filteredConversations.length > 0 || searchQuery.length === 0}
       />
 
@@ -279,19 +282,19 @@ export default function MessagesScreen() {
         transparent={true}
         onRequestClose={() => setIsNewDMModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Start New Conversation</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Start New Conversation</Text>
               <TouchableOpacity onPress={() => setIsNewDMModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
-            <TextInput
-              style={styles.searchInputModal}
-              placeholder="Search users..."
+            <BaseInput
               value={searchQuery}
               onChangeText={setSearchQuery}
+              placeholder="Search users..."
+              style={styles.searchInputModal}
             />
             <View style={{ marginTop: 8 }}>{renderSearchResults()}</View>
           </View>
@@ -338,19 +341,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#fff',
     marginHorizontal: 16,
     marginVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -382,12 +374,6 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
   searchInputModal: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    height: 40,
-    paddingHorizontal: 12,
-    fontSize: 14,
     marginTop: 12,
-    color: '#333',
   },
 });

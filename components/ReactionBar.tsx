@@ -12,6 +12,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import { reactionApi } from '../src/api/reaction.api';
+import { useTheme } from '../src/theme/ThemeContext';
 
 interface ReactionBarProps {
   postId: string;
@@ -34,6 +35,7 @@ export default function ReactionBar({
   onReactionChange,
 }: ReactionBarProps) {
   const buttonRef = useRef<View>(null);
+  const { colors } = useTheme();
 
   const [showPicker, setShowPicker] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -181,6 +183,7 @@ export default function ReactionBar({
         style={({ pressed }) => [
           styles.reactionButton,
           userReaction && styles.reactionButtonActive,
+          { backgroundColor: userReaction ? colors.primaryLight : colors.surfaceSecondary, borderColor: colors.primary },
           pressed && styles.reactionButtonPressed,
         ]}
         onPress={() => {
@@ -194,22 +197,23 @@ export default function ReactionBar({
         {userReaction ? (
           <>
             <Text style={styles.reactionEmoji}>{userReaction}</Text>
-            <Text style={styles.reactionCountActive}>{count}</Text>
+            <Text style={[styles.reactionCountActive, { color: colors.primary }]}>{count}</Text>
           </>
         ) : (
           <>
             <Text style={styles.reactionEmoji}>🤍</Text>
-            <Text style={styles.reactionCount}>React</Text>
+            <Text style={[styles.reactionCount, { color: colors.textSecondary }]}>React</Text>
           </>
         )}
       </Pressable>
 
       <Modal transparent visible={showPicker} animationType="none">
-        <Pressable style={styles.overlay} onPress={() => setShowPicker(false)}>
+        <Pressable style={[styles.overlay, { backgroundColor: colors.overlay }]} onPress={() => setShowPicker(false)}>
           <Animated.View
             onLayout={onPopoverLayout}
             style={[
               styles.popover,
+              { backgroundColor: colors.surface },
               { width: POPOVER_WIDTH },
               popoverStyle,
               { opacity, transform: [{ scale }] },
@@ -232,7 +236,8 @@ export default function ReactionBar({
                     onPress={() => handleReactionPress(emoji)}
                     style={[
                       styles.emojiButton,
-                      isHovered && styles.emojiHover,
+                      { backgroundColor: colors.surfaceSecondary },
+                      isHovered && [styles.emojiHover, { backgroundColor: colors.primaryLight }],
                       hoveredEmoji && !isHovered && styles.emojiDim,
                     ]}
                   >
@@ -247,11 +252,11 @@ export default function ReactionBar({
                 style={styles.removeButton}
                 onPress={() => handleReactionPress(userReaction)}
               >
-                <Text style={styles.removeText}>Remove</Text>
+                <Text style={[styles.removeText, { color: colors.textSecondary }]}>Remove</Text>
               </Pressable>
             )}
 
-            <View style={[styles.arrow, { left: arrowLeft }]} />
+            <View style={[styles.arrow, { left: arrowLeft, backgroundColor: colors.surface }]} />
           </Animated.View>
         </Pressable>
       </Modal>

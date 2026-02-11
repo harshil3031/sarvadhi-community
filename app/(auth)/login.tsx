@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -19,6 +18,8 @@ import { Link, router } from 'expo-router';
 // import * as Google from 'expo-auth-session/providers/google';
 // import Constants from 'expo-constants';
 import { useAuthStore } from '../../src/store/auth.store';
+import { BaseInput } from '../../src/components/base/BaseInput';
+import { useTheme } from '../../src/theme/ThemeContext';
 
 // Prompt user with browser UI
 // WebBrowser.maybeCompleteAuthSession();
@@ -37,6 +38,7 @@ import { useAuthStore } from '../../src/store/auth.store';
  */
 export default function LoginScreen() {
   const { login, loginWithGoogle, error, clearError, isLoading: storeLoading } = useAuthStore();
+  const { colors } = useTheme();
   
   // Form state
   const [email, setEmail] = useState('');
@@ -169,16 +171,16 @@ export default function LoginScreen() {
   const isButtonDisabled = isLoading || storeLoading;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: colors.surface }]}>
           {/* Logo */}
           <View style={styles.logoContainer}>
             <Image
@@ -190,14 +192,14 @@ export default function LoginScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue to Sarvadhi Community</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to continue to Sarvadhi Community</Text>
           </View>
 
           {/* Error Messages */}
           {(error || validationError) && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>
+            <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
+              <Text style={[styles.errorText, { color: colors.error }]}>
                 {validationError || error}
               </Text>
             </View>
@@ -205,9 +207,9 @@ export default function LoginScreen() {
 
           {/* Email Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
+            <BaseInput
+              label="Email"
+              containerStyle={{ marginBottom: 0 }}
               placeholder="Enter your email"
               value={email}
               onChangeText={(text) => {
@@ -222,9 +224,9 @@ export default function LoginScreen() {
 
           {/* Password Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
+            <BaseInput
+              label="Password"
+              containerStyle={{ marginBottom: 0 }}
               placeholder="Enter your password"
               value={password}
               onChangeText={(text) => {
@@ -239,14 +241,14 @@ export default function LoginScreen() {
 
           {/* Login Button */}
           <TouchableOpacity
-            style={[styles.button, styles.primaryButton, isButtonDisabled && styles.buttonDisabled]}
+            style={[styles.button, { backgroundColor: colors.primary }, isButtonDisabled && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={isButtonDisabled}
           >
             {isLoading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={colors.surface} />
             ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
+              <Text style={[styles.buttonText, { color: colors.surface }]}>Sign In</Text>
             )}
           </TouchableOpacity>
 
@@ -268,10 +270,10 @@ export default function LoginScreen() {
 
           {/* Register Link */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>Don't have an account? </Text>
             <Link href="/(auth)/register" asChild>
               <TouchableOpacity disabled={isButtonDisabled}>
-                <Text style={styles.link}>Sign Up</Text>
+                <Text style={[styles.link, { color: colors.primary }]}>Sign Up</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -285,7 +287,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   scrollContent: {
     flexGrow: 1,
@@ -294,7 +295,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
     marginHorizontal: 16,
     marginVertical: 24,
     borderRadius: 16,
@@ -318,21 +318,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000000',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
   },
   errorContainer: {
-    backgroundColor: '#fee',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: '#c00',
     fontSize: 14,
   },
   inputGroup: {
@@ -341,16 +337,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     borderRadius: 10,
     padding: 14,
     fontSize: 16,
-    backgroundColor: '#ffffff',
   },
   button: {
     borderRadius: 8,
@@ -358,16 +351,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
-  },
-  primaryButton: {
-    backgroundColor: '#2563EB',
     marginTop: 8,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   buttonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -379,20 +368,15 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#dddddd',
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#999999',
     fontSize: 14,
   },
   googleButton: {
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#dddddd',
   },
   googleButtonText: {
-    color: '#000000',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -403,11 +387,9 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#666666',
   },
   link: {
     fontSize: 14,
-    color: '#2563EB',
     fontWeight: '600',
   },
 });

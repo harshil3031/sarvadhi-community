@@ -21,6 +21,8 @@ import { useChannelStore } from '../../../src/store/channel.store';
 import { useSocketStore } from '../../../src/store/socket.store';
 import CreatePostModal from '../../../components/CreatePostModal';
 import PostCard from '../../../components/PostCard';
+import InviteChannelUserModal from '../../../components/InviteChannelUserModal';
+import { BaseButton } from '../../../src/components/base/BaseButton';
 
 export default function ChannelDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,11 +45,14 @@ export default function ChannelDetailScreen() {
 
   // Create post modal
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [showInviteUser, setShowInviteUser] = useState(false);
 
   // Prevent concurrent fetches
   const isFetchingRef = useRef(false);
 
   const LIMIT = 20;
+  const isCreator = user?.id === channel?.createdBy;
+  const canInvite = !!channel?.isMember && (isCreator || user?.role === 'admin' || user?.role === 'moderator');
 
   // Fetch channel details
   const fetchChannelDetails = async () => {
@@ -235,12 +240,16 @@ export default function ChannelDetailScreen() {
           title: channel?.name || 'Channel Feed',
           headerBackTitle: 'Channels',
           headerRight: () => (
-            <Pressable
-              onPress={() => router.push(`/channels/info/${id}`)}
-              style={{ marginRight: 8 }}
-            >
-              <Ionicons name="information-circle-outline" size={24} color="#4B5563" />
-            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 8 }}>
+              {canInvite && (
+                <Pressable onPress={() => setShowInviteUser(true)}>
+                  <Ionicons name="person-add-outline" size={22} color="#4B5563" />
+                </Pressable>
+              )}
+              <Pressable onPress={() => router.push(`/channels/info/${id}`)}>
+                <Ionicons name="information-circle-outline" size={24} color="#4B5563" />
+              </Pressable>
+            </View>
           )
         }}
       />
@@ -263,32 +272,23 @@ export default function ChannelDetailScreen() {
               ? 'This is a private channel. You need to request access to view content and participate.'
               : 'You are currently viewing this channel as a guest. Join to start posting and interacting!'}
           </Text>
-          <Pressable
-            style={({ pressed }) => [
-              styles.joinButton,
-              pressed && styles.joinButtonPressed,
-            ]}
+          <BaseButton
+            label={channel?.type === 'private' ? 'Request Access' : 'Join Channel'}
             onPress={handleJoin}
-          >
-            <Text style={styles.joinButtonText}>
-              {channel?.type === 'private' ? 'Request Access' : 'Join Channel'}
-            </Text>
-          </Pressable>
+            variant="primary"
+          />
         </View>
       )}
 
       {/* Create Post Button (Only for members) */}
       {channel?.isMember && (
         <View style={styles.createPostContainer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.createPostButton,
-              pressed && styles.createPostButtonPressed,
-            ]}
+          <BaseButton
+            label="✍️ Create Post"
             onPress={() => setShowCreatePost(true)}
-          >
-            <Text style={styles.createPostButtonText}>✍️ Create Post</Text>
-          </Pressable>
+            variant="primary"
+            fullWidth
+          />
         </View>
       )}
 
@@ -331,6 +331,14 @@ export default function ChannelDetailScreen() {
         channelId={id}
         onPostCreated={handlePostCreated}
       />
+
+      {canInvite && (
+        <InviteChannelUserModal
+          visible={showInviteUser}
+          channelId={id}
+          onClose={() => setShowInviteUser(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }

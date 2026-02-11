@@ -19,11 +19,14 @@ import { useAuthStore } from '@/store/auth.store';
 import { Channel } from '@/api/channels';
 import CreateChannelModal from '../../../components/CreateChannelModal';
 import { useSocketStore } from '../../../src/store/socket.store';
+import { useTheme } from '../../../src/theme/ThemeContext';
+import { EmptyState } from '../../../src/components/common/EmptyState';
 
 export default function ChannelsScreen() {
   const { channels, isLoading, fetchChannels, joinChannel, leaveChannel, requestJoinPrivate } = useChannelStore();
   const { user } = useAuthStore();
   const { on, off } = useSocketStore();
+  const { colors } = useTheme();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
@@ -136,15 +139,15 @@ export default function ChannelsScreen() {
 
   if (isLoading && channels.length === 0) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text style={styles.loadingText}>Loading channels...</Text>
+      <SafeAreaView style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading channels...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           headerTitle: 'Channels',
@@ -153,7 +156,7 @@ export default function ChannelsScreen() {
               onPress={() => setIsCreateModalVisible(true)}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="add" size={28} color="#2563EB" />
+              <Ionicons name="add" size={28} color={colors.primary} />
             </TouchableOpacity>
           ) : null
         }}
@@ -168,15 +171,16 @@ export default function ChannelsScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor="#3B82F6"
+            colors={[colors.primary]}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No channels available</Text>
-            <Text style={styles.emptySubtext}>
-              Check back later for new channels to join
-            </Text>
+            <EmptyState
+              icon="📢"
+              title="No channels available"
+              description="Check back later for new channels to join"
+            />
           </View>
         }
       />

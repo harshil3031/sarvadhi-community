@@ -12,6 +12,8 @@ import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Group, groupApi } from '../src/api/group.api';
 import { useAuthStore } from '../src/store';
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseCard } from '../src/components/base/BaseCard';
 
 interface GroupCardProps {
   group: Group.Group;
@@ -24,6 +26,7 @@ interface GroupCardProps {
 export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading = false }: GroupCardProps) {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isCreator = user?.id === group.createdBy;
@@ -135,38 +138,35 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
   };
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.iconContainer}>
-        <Ionicons name="people" size={28} color="#3b82f6" />
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+      <BaseCard style={styles.container}>
+      <View style={[styles.iconContainer, { backgroundColor: colors.primaryLight }] }>
+        <Ionicons name="people" size={28} color={colors.primary} />
       </View>
 
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
             {group.name}
           </Text>
           {isCreator && (
-            <View style={styles.creatorBadge}>
-              <Ionicons name="star" size={12} color="#f59e0b" />
-              <Text style={styles.creatorText}>Creator</Text>
+            <View style={[styles.creatorBadge, { backgroundColor: `${colors.warning}20` }]}>
+              <Ionicons name="star" size={12} color={colors.warning} />
+              <Text style={[styles.creatorText, { color: colors.warning }]}>Creator</Text>
             </View>
           )}
         </View>
 
         {group.description && (
-          <Text style={styles.description} numberOfLines={2}>
+          <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
             {group.description}
           </Text>
         )}
 
         <View style={styles.footer}>
           <View style={styles.stats}>
-            <Ionicons name="person" size={14} color="#999" />
-            <Text style={styles.memberCount}>
+            <Ionicons name="person" size={14} color={colors.textTertiary} />
+            <Text style={[styles.memberCount, { color: colors.textTertiary }]}>
               {group.memberCount || 0} {group.memberCount === 1 ? 'member' : 'members'}
             </Text>
           </View>
@@ -174,7 +174,7 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
           <View style={styles.actions}>
             {showJoin ? (
               <TouchableOpacity
-                style={[styles.actionButton, styles.joinButton]}
+                style={[styles.actionButton, styles.joinButton, { backgroundColor: colors.primary }]}
                 onPress={handleJoin}
                 disabled={isLoading || isProcessing}
               >
@@ -189,31 +189,31 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
               </TouchableOpacity>
             ) : isCreator ? (
               <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton]}
+                style={[styles.actionButton, styles.deleteButton, { backgroundColor: `${colors.error}20` }]}
                 onPress={handleDelete}
                 disabled={isLoading || isProcessing}
               >
                 {isLoading || isProcessing ? (
-                  <ActivityIndicator size="small" color="#dc2626" />
+                  <ActivityIndicator size="small" color={colors.error} />
                 ) : (
                   <>
-                    <Ionicons name="trash-outline" size={16} color="#dc2626" />
-                    <Text style={styles.deleteButtonText}>Delete</Text>
+                    <Ionicons name="trash-outline" size={16} color={colors.error} />
+                    <Text style={[styles.deleteButtonText, { color: colors.error }]}>Delete</Text>
                   </>
                 )}
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={[styles.actionButton, styles.leaveButton]}
+                style={[styles.actionButton, styles.leaveButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={handleLeave}
                 disabled={isLoading || isProcessing}
               >
                 {isLoading || isProcessing ? (
-                  <ActivityIndicator size="small" color="#666" />
+                  <ActivityIndicator size="small" color={colors.textSecondary} />
                 ) : (
                   <>
-                    <Ionicons name="exit-outline" size={16} color="#666" />
-                    <Text style={styles.leaveButtonText}>Leave</Text>
+                    <Ionicons name="exit-outline" size={16} color={colors.textSecondary} />
+                    <Text style={[styles.leaveButtonText, { color: colors.textSecondary }]}>Leave</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -221,6 +221,7 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
           </View>
         </View>
       </View>
+      </BaseCard>
     </TouchableOpacity>
   );
 }
@@ -228,16 +229,9 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     padding: 16,
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   iconContainer: {
     width: 56,

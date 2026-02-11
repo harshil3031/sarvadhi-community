@@ -9,35 +9,19 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  useColorScheme,
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, Stack } from 'expo-router';
 import { Notification, notificationApi } from '../../../src/api/notification.api';
-import { Colors } from '../../../constants/theme';
 import NotificationCard from '../../../components/NotificationCard';
 import { useNotificationSocket } from '../../../src/hooks/useNotificationSocket';
 import { useNotificationStore } from '../../../src/store/notification.store';
-
-const NotificationScreenColors = {
-  light: {
-    background: '#f9fafb',
-    text: '#000',
-    mutedText: '#666',
-    border: '#ddd',
-  },
-  dark: {
-    background: '#0a0a0a',
-    text: '#fff',
-    mutedText: '#aaa',
-    border: '#333',
-  },
-};
+import { useTheme } from '../../../src/theme/ThemeContext';
+import { EmptyState } from '../../../src/components/common/EmptyState';
 
 export default function NotificationsScreen() {
-  const colorScheme = useColorScheme();
-  const colors = NotificationScreenColors[colorScheme ?? 'light'] as typeof NotificationScreenColors['light'];
+  const { colors } = useTheme();
 
   const [notifications, setNotifications] = useState<Notification.Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -230,13 +214,11 @@ export default function NotificationsScreen() {
         { backgroundColor: colors.background },
       ]}
     >
-      <Ionicons name="notifications-outline" size={64} color={colors.mutedText} />
-      <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
-        No Notifications
-      </Text>
-      <Text style={[styles.emptyStateMessage, { color: colors.mutedText }]}>
-        You're all caught up! Check back later.
-      </Text>
+      <EmptyState
+        icon="🔔"
+        title="No Notifications"
+        description="You're all caught up! Check back later."
+      />
     </View>
   );
 
@@ -249,7 +231,7 @@ export default function NotificationsScreen() {
             onPress={handleMarkAllAsRead}
             style={{ marginRight: 8, padding: 8 }}
           >
-            <Text style={{ color: '#2563EB', fontWeight: '600', fontSize: 13 }}>Mark all as read</Text>
+            <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>Mark all as read</Text>
           </TouchableOpacity>
         ) : null
       }}
@@ -260,7 +242,7 @@ export default function NotificationsScreen() {
     if (notifications.length === 0 || !isLoading) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   };

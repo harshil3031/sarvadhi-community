@@ -7,6 +7,7 @@ import { usePostStore } from "../../src/store/post.store";
 import { Post } from "../../src/api/posts";
 import PostCard from "../../components/PostCard";
 import CreatePostModal from "../../components/CreatePostModal";
+import { useTheme } from "../../src/theme/ThemeContext";
 
 export default function FeedScreen() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function FeedScreen() {
   const { posts, fetchFeedPosts, isLoading: postsLoading } = usePostStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const { colors } = useTheme();
 
   useEffect(() => {
     loadFeed();
@@ -62,9 +64,9 @@ export default function FeedScreen() {
 
   if (channelsLoading && channels.length === 0) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Loading feed...</Text>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading feed...</Text>
       </View>
     );
   }
@@ -73,7 +75,7 @@ export default function FeedScreen() {
   const defaultChannelId = joinedChannels.length > 0 ? joinedChannels[0].id : undefined;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           headerTitle: "Feed",
@@ -82,7 +84,7 @@ export default function FeedScreen() {
               onPress={() => router.push("/(tabs)/search")}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="search" size={24} color="#111827" />
+              <Ionicons name="search" size={24} color={colors.text} />
             </TouchableOpacity>
           )
         }}
@@ -91,16 +93,16 @@ export default function FeedScreen() {
       {joinedChannels.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.emptyIcon}>📢</Text>
-          <Text style={styles.emptyTitle}>Join Channels to See Posts</Text>
-          <Text style={styles.info}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Join Channels to See Posts</Text>
+          <Text style={[styles.info, { color: colors.textSecondary }]}>
             Join some channels to see posts in your feed.
           </Text>
         </View>
       ) : posts.length === 0 && !postsLoading ? (
         <View style={styles.center}>
           <Text style={styles.emptyIcon}>🚀</Text>
-          <Text style={styles.emptyTitle}>No Posts Yet</Text>
-          <Text style={styles.info}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No Posts Yet</Text>
+          <Text style={[styles.info, { color: colors.textSecondary }]}>
             Be the first to post in your channels!
           </Text>
         </View>
@@ -120,13 +122,13 @@ export default function FeedScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              colors={['#2563EB']}
+              colors={[colors.primary]}
             />
           }
           ListEmptyComponent={
             postsLoading ? (
               <View style={styles.center}>
-                <ActivityIndicator size="large" color="#2563EB" />
+                <ActivityIndicator size="large" color={colors.primary} />
               </View>
             ) : null
           }
@@ -138,6 +140,7 @@ export default function FeedScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.fab,
+            { backgroundColor: colors.primary },
             pressed && styles.fabPressed
           ]}
           onPress={() => setIsCreateModalVisible(true)}
@@ -160,8 +163,6 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   center: {
     flex: 1,
@@ -172,7 +173,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#6B7280",
   },
   emptyIcon: {
     fontSize: 64,
@@ -181,12 +181,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
     marginBottom: 8,
   },
   info: {
     fontSize: 14,
-    color: "#6B7280",
     textAlign: "center",
   },
   list: {
@@ -201,7 +199,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
@@ -212,7 +209,7 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   fabPressed: {
-    backgroundColor: '#1D4ED8',
+    opacity: 0.8,
     transform: [{ scale: 0.95 }],
   },
 });

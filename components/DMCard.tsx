@@ -7,6 +7,8 @@ import { useAuthStore } from '../src/store/auth.store';
 import { formatConversationTime } from '../src/utils/date';
 import { useDMSocket } from '../src/hooks/useDMSocket';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseCard } from '../src/components/base/BaseCard';
 
 interface DMCardProps {
   conversation: DM.Conversation;
@@ -16,6 +18,7 @@ export default function DMCard({ conversation }: DMCardProps) {
   const router = useRouter();
   const { user } = useAuthStore();
   const { isConnected } = useDMSocket();
+  const { colors } = useTheme();
 
   const otherParticipant =
     conversation.participants.find((p) => p.id !== user?.id) ||
@@ -69,14 +72,15 @@ export default function DMCard({ conversation }: DMCardProps) {
   return (
     <TouchableWithoutFeedback onPress={handlePress}>
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <LinearGradient
-          colors={hasUnread ? ['#dbeafe', '#bfdbfe'] : ['#fff', '#fff']}
-          start={[0, 0]}
-          end={[1, 1]}
-          style={styles.container}
-        >
+        <BaseCard style={styles.container}>
+          <LinearGradient
+            colors={hasUnread ? [colors.primaryLight, colors.surfaceSecondary] : [colors.surface, colors.surface]}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={styles.gradient}
+          >
           {/* Avatar */}
-          <View style={styles.avatarContainer}>
+          <View style={[styles.avatarContainer, { backgroundColor: colors.surfaceSecondary }] }>
             {otherParticipant.avatar ? (
               <Image
                 source={{ uri: otherParticipant.avatar }}
@@ -84,43 +88,44 @@ export default function DMCard({ conversation }: DMCardProps) {
                 resizeMode="cover"
               />
             ) : (
-              <Text style={styles.avatarText}>
+              <Text style={[styles.avatarText, { color: colors.text }] }>
                 {otherParticipant.fullName?.charAt(0).toUpperCase() || '?'}
               </Text>
             )}
-            {online && <View style={styles.onlineDot} />}
+            {online && <View style={[styles.onlineDot, { backgroundColor: colors.success, borderColor: colors.surface }]} />}
           </View>
 
           {/* Content */}
           <View style={styles.content}>
             <View style={styles.header}>
               <Text
-                style={[styles.name, hasUnread && styles.unreadMessage]}
+                style={[styles.name, { color: colors.text }, hasUnread && styles.unreadMessage, hasUnread && { color: colors.text }]}
                 numberOfLines={1}
               >
                 {otherParticipant.fullName || 'Unknown'}
               </Text>
-              <Text style={styles.time}>
+              <Text style={[styles.time, { color: colors.textTertiary }]}>
                 {formatConversationTime(conversation.updatedAt)}
               </Text>
             </View>
 
             <View style={styles.messageRow}>
               <Text
-                style={[styles.lastMessage, hasUnread && styles.unreadMessage]}
+                style={[styles.lastMessage, { color: colors.textSecondary }, hasUnread && styles.unreadMessage, hasUnread && { color: colors.text }]}
                 numberOfLines={1}
               >
                 {conversation.lastMessage?.text || 'No messages yet'}
               </Text>
 
               {hasUnread && (
-                <View style={styles.unreadBadge}>
+                <View style={[styles.unreadBadge, { backgroundColor: colors.primary }] }>
                   <Text style={styles.unreadText}>{conversation.unreadCount}</Text>
                 </View>
               )}
             </View>
           </View>
-        </LinearGradient>
+          </LinearGradient>
+        </BaseCard>
       </Animated.View>
     </TouchableWithoutFeedback>
   );
@@ -128,18 +133,16 @@ export default function DMCard({ conversation }: DMCardProps) {
 
 const styles = StyleSheet.create({
   container: {
+    marginHorizontal: 12,
+    marginVertical: 6,
+    padding: 0,
+  },
+  gradient: {
     flexDirection: 'row',
     paddingVertical: 14,
     paddingHorizontal: 16,
     alignItems: 'center',
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-    marginHorizontal: 12,
-    marginVertical: 6,
   },
   avatarContainer: {
     width: 52,
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { fontSize: 16, fontWeight: '600', color: '#111827', flex: 1 },
   lastMessage: { fontSize: 14, color: '#6b7280', flex: 1 },
-  unreadMessage: { fontWeight: '700', color: '#111827' },
+  unreadMessage: { fontWeight: '700' },
   time: { fontSize: 12, color: '#9ca3af', marginLeft: 8, flexShrink: 0 },
   messageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   unreadBadge: {

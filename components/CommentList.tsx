@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   FlatList,
   StyleSheet,
   Pressable,
@@ -11,22 +10,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { commentApi, Comment } from '../src/api/comment.api';
 import { useAuthStore } from '../src/store';
+import { BaseInput } from '../src/components/base/BaseInput';
 
 interface CommentListProps {
   postId: string;
   commentCount: number;
   onCommentCountChange?: (newCount: number) => void;
+  onClose?: () => void;
 }
 
 export default function CommentList({
   postId,
   commentCount,
   onCommentCountChange,
+  onClose,
 }: CommentListProps) {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -209,32 +212,76 @@ export default function CommentList({
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={100}
-    >
-      {/* Comment Input */}
-      <View style={styles.inputContainer}>
-        <View style={styles.userAvatar}>
-          <Text style={styles.userAvatarText}>
-            {user?.fullName?.charAt(0).toUpperCase() || '?'}
-          </Text>
-        </View>
-        <TextInput
-          style={styles.input}
-          placeholder="Write a comment..."
-          placeholderTextColor="#9CA3AF"
-          value={newComment}
-          onChangeText={setNewComment}
-          multiline
-          maxLength={2000}
-          editable={!isSubmitting}
-        />
-        <Pressable
-          style={[styles.sendButton, (!newComment.trim() || isSubmitting) && styles.sendButtonDisabled]}
-          onPress={handleAddComment}
-          disabled={!newComment.trim() || isSubmitting}
+    <SafeAreaView style={styles.container}>
+      {/* Header with Close Button */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Comments ({commentCount})</Text>
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        {/* Comments List */}
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingText}>Loading comments...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={comments}
+            keyExtractor={(item) => item.id}
+            renderItem={renderComment}
+            contentContainerStyle={styles.listContent}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No comments yet</Text>
+                <Text style={styles.emptySubtext}>Be the first to comment!</Text>
+              </View>
+            }
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color="#3B82F6" />
+                </View>
+              ) : null
+            }
+          />
+        )}
+
+        {/* Comment Input at Bottom */}
+        <View style={styles.inputContainer}>
+          <View style={styles.userAvatar}>
+            <Text style={styles.userAvatarText}>
+              {user?.fullName?.charAt(0).toUpperCase() || '?'}
+            </Text>
+          </View>
+          <BaseInput
+            containerStyle={styles.inputContainerStyle}
+            inputWrapperStyle={styles.inputWrapper}
+            inputTextStyle={styles.inputText}
+            placeholder="Write a comment..."
+            value={newComment}
+            onChangeText={setNewComment}
+            multiline
+            maxLength={2000}
+            editable={!isSubmitting}
+          />
+          <Pressable
+            style={[styles.sendButton, (!newComment.trim() || isSubmitting) && styles.sendButtonDisabled]}
+            onPress={handleAddComment}
+            disabled={!newComment.trim() || isSubmitting}
         >
           {isSubmitting ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
@@ -242,38 +289,9 @@ export default function CommentList({
             <Text style={styles.sendButtonText}>Send</Text>
           )}
         </Pressable>
-      </View>
-
-      {/* Comments List */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>Loading comments...</Text>
         </View>
-      ) : (
-        <FlatList
-          data={comments}
-          keyExtractor={(item) => item.id}
-          renderItem={renderComment}
-          contentContainerStyle={styles.listContent}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No comments yet</Text>
-              <Text style={styles.emptySubtext}>Be the first to comment!</Text>
-            </View>
-          }
-          ListFooterComponent={
-            isLoadingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#3B82F6" />
-              </View>
-            ) : null
-          }
-        />
-      )}
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -281,6 +299,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -304,17 +353,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  input: {
+  inputContainerStyle: {
     flex: 1,
-    maxHeight: 100,
+    marginBottom: 0,
+  },
+  inputWrapper: {
+    flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D1D5DB',
+    overflow: 'hidden',
+  },
+  inputText: {
+    maxHeight: 100,
+    minHeight: 40,
     fontSize: 14,
     color: '#111827',
+    paddingVertical: 8,
   },
   sendButton: {
     backgroundColor: '#3B82F6',

@@ -3,7 +3,6 @@ import {
     View,
     Text,
     Modal,
-    TextInput,
     TouchableOpacity,
     StyleSheet,
     KeyboardAvoidingView,
@@ -15,6 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { channelApi } from '../src/api/channels';
 import { userApi, UserApi } from '../src/api/user.api';
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseInput } from '../src/components/base/BaseInput';
 
 interface InviteChannelUserModalProps {
     visible: boolean;
@@ -29,6 +30,7 @@ export default function InviteChannelUserModal({
     onClose,
     onUserInvited,
 }: InviteChannelUserModalProps) {
+    const { colors } = useTheme();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<UserApi.UserProfile[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -82,18 +84,18 @@ export default function InviteChannelUserModal({
     };
 
     const renderUser = ({ item }: { item: UserApi.UserProfile }) => (
-        <View style={styles.userItem}>
-            <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
+        <View style={[styles.userItem, { borderBottomColor: colors.border }] }>
+            <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.avatarText, { color: colors.primary }] }>
                     {item.fullName?.charAt(0).toUpperCase() || '?'}
                 </Text>
             </View>
             <View style={styles.userInfo}>
-                <Text style={styles.userName}>{item.fullName}</Text>
-                <Text style={styles.userEmail}>{item.email}</Text>
+                <Text style={[styles.userName, { color: colors.text }]}>{item.fullName}</Text>
+                <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{item.email}</Text>
             </View>
             <TouchableOpacity
-                style={[styles.inviteButton, invitingId === item.id && styles.buttonDisabled]}
+                style={[styles.inviteButton, { backgroundColor: colors.primary }, invitingId === item.id && styles.buttonDisabled]}
                 onPress={() => handleInvite(item.id)}
                 disabled={!!invitingId}
             >
@@ -117,22 +119,24 @@ export default function InviteChannelUserModal({
                 style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={styles.backdrop}>
-                    <View style={styles.modalContent}>
+                <View style={[styles.backdrop, { backgroundColor: colors.overlay }] }>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
                         {/* Header */}
                         <View style={styles.header}>
                             <TouchableOpacity onPress={handleClose}>
-                                <Ionicons name="close" size={24} color="#333" />
+                                <Ionicons name="close" size={24} color={colors.text} />
                             </TouchableOpacity>
-                            <Text style={styles.title}>Invite to Channel</Text>
+                            <Text style={[styles.title, { color: colors.text }]}>Invite to Channel</Text>
                             <View style={{ width: 24 }} />
                         </View>
 
                         {/* Search Bar */}
-                        <View style={styles.searchContainer}>
-                            <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
-                            <TextInput
-                                style={styles.searchInput}
+                        <View style={[styles.searchContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }] }>
+                            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+                            <BaseInput
+                                containerStyle={styles.searchInputContainer}
+                                inputWrapperStyle={styles.searchInputWrapper}
+                                inputTextStyle={[styles.searchInput, { color: colors.text }]}
                                 value={query}
                                 onChangeText={handleQueryChange}
                                 placeholder="Search by name or email..."
@@ -143,7 +147,7 @@ export default function InviteChannelUserModal({
                         {/* Results List */}
                         {isLoading && results.length === 0 ? (
                             <View style={styles.listPadding}>
-                                <ActivityIndicator size="small" color="#2563EB" />
+                                <ActivityIndicator size="small" color={colors.primary} />
                             </View>
                         ) : (
                             <FlatList
@@ -153,7 +157,7 @@ export default function InviteChannelUserModal({
                                 contentContainerStyle={styles.listContent}
                                 ListEmptyComponent={
                                     query.trim() !== '' && !isLoading ? (
-                                        <Text style={styles.emptyText}>No users found</Text>
+                                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No users found</Text>
                                     ) : null
                                 }
                             />
@@ -205,6 +209,15 @@ const styles = StyleSheet.create({
     },
     searchIcon: {
         marginRight: 8,
+    },
+    searchInputContainer: {
+        flex: 1,
+        marginBottom: 0,
+    },
+    searchInputWrapper: {
+        borderWidth: 0,
+        backgroundColor: 'transparent',
+        paddingHorizontal: 0,
     },
     searchInput: {
         flex: 1,

@@ -1,4 +1,5 @@
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { useTheme } from '../src/theme/ThemeContext';
 
 /**
  * Loading Screen Component
@@ -7,10 +8,11 @@ import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
  * Prevents screen flicker by showing a consistent loading state.
  */
 export default function LoadingScreen() {
+  const { colors } = useTheme();
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#007AFF" />
-      <Text style={styles.text}>Loading...</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={[styles.text, { color: colors.textSecondary }]}>Loading...</Text>
     </View>
   );
 }
@@ -20,11 +22,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
   },
   text: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666666',
   },
 });

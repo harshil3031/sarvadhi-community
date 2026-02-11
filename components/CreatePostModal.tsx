@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   Pressable,
   ActivityIndicator,
@@ -14,6 +13,8 @@ import {
 } from 'react-native';
 import { Channel } from '../src/api/channels';
 import { postApi, Post } from '../src/api/posts';
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseInput } from '../src/components/base/BaseInput';
 
 interface CreatePostModalProps {
   visible: boolean;
@@ -32,6 +33,7 @@ export default function CreatePostModal({
   availableChannels = [],
   onPostCreated,
 }: CreatePostModalProps) {
+  const { colors } = useTheme();
   // Default to passed channelId, or first available channel
   const [selectedChannelId, setSelectedChannelId] = useState<string | undefined>(
     channelId || (availableChannels.length > 0 ? availableChannels[0].id : undefined)
@@ -116,23 +118,24 @@ export default function CreatePostModal({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }] }>
           <Pressable onPress={handleClose} disabled={isSubmitting}>
-            <Text style={[styles.headerButton, isSubmitting && styles.disabled]}>
+            <Text style={[styles.headerButton, { color: colors.textSecondary }, isSubmitting && styles.disabled]}>
               Cancel
             </Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Create Post</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Create Post</Text>
           <Pressable onPress={handleSubmit} disabled={isSubmitting || !content.trim()}>
             {isSubmitting ? (
-              <ActivityIndicator size="small" color="#3B82F6" />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <Text
                 style={[
                   styles.headerButton,
                   styles.postButton,
+                  { color: colors.primary },
                   (!content.trim() || isSubmitting) && styles.disabled,
                 ]}
               >
@@ -144,10 +147,10 @@ export default function CreatePostModal({
 
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
           {error && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{error}</Text>
+            <View style={[styles.errorBanner, { backgroundColor: `${colors.error}20`, borderColor: `${colors.error}40` }]}>
+              <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
               <Pressable onPress={() => setError(null)}>
-                <Text style={styles.errorDismiss}>✕</Text>
+                <Text style={[styles.errorDismiss, { color: colors.error }]}>✕</Text>
               </Pressable>
             </View>
           )}
@@ -155,21 +158,21 @@ export default function CreatePostModal({
           {/* Channel Selector */}
           {showChannelSelector && (
             <View style={styles.channelSelector}>
-              <Text style={styles.channelLabel}>Posting to:</Text>
+              <Text style={[styles.channelLabel, { color: colors.textSecondary }]}>Posting to:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.channelScroll}>
                 {availableChannels.map((channel) => (
                   <Pressable
                     key={channel.id}
                     style={[
                       styles.channelChip,
-                      selectedChannelId === channel.id && styles.channelChipSelected
+                      selectedChannelId === channel.id && [styles.channelChipSelected, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]
                     ]}
                     onPress={() => setSelectedChannelId(channel.id)}
                   >
                     <Text
                       style={[
                         styles.channelChipText,
-                        selectedChannelId === channel.id && styles.channelChipTextSelected
+                        selectedChannelId === channel.id && [styles.channelChipTextSelected, { color: colors.primary }]
                       ]}
                     >
                       # {channel.name}
@@ -180,24 +183,18 @@ export default function CreatePostModal({
             </View>
           )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="What's on your mind?"
-            placeholderTextColor="#9CA3AF"
-            multiline
-            maxLength={5000}
+          <BaseInput
             value={content}
             onChangeText={(text) => {
               setContent(text);
               setError(null);
             }}
-            autoFocus
+            placeholder="What's on your mind?"
+            multiline
+            maxLength={5000}
             editable={!isSubmitting}
+            autoFocus
           />
-
-          <Text style={styles.characterCount}>
-            {content.length} / 5000
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>

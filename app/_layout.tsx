@@ -59,6 +59,7 @@ import { useNotificationSocket } from '../src/hooks/useNotificationSocket';
 import { useNotificationStore } from '../src/store/notification.store';
 import { useDMStore } from '../src/store/dm.store';
 import NotificationToast from '../components/NotificationToast';
+import { ThemeProvider } from '../src/theme/ThemeContext';
 
 // Detect if running in Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -213,27 +214,29 @@ export default function RootLayout() {
 
   /* -------------------- LAYOUT STACK -------------------- */
   return (
-    <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+    <ThemeProvider>
+      <View style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
 
-      <NotificationToast
-        notification={activeNotification}
-        onPress={(notification) => {
-          // Handle navigation when toast is tapped
-          const navigationData = {
-            type: notification.type,
-            referenceId: notification.referenceId,
-          };
-          handleNotificationNavigation(navigationData);
-        }}
-        onClose={() => setActiveNotification(null)}
-      />
+        <NotificationToast
+          notification={activeNotification}
+          onPress={(notification) => {
+            // Handle navigation when toast is tapped
+            const navigationData = {
+              type: notification.type,
+              referenceId: notification.referenceId,
+            };
+            handleNotificationNavigation(navigationData);
+          }}
+          onClose={() => setActiveNotification(null)}
+        />
 
-      <Toast />
-    </View>
+        <Toast />
+      </View>
+    </ThemeProvider>
   );
 }

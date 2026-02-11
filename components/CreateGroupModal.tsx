@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Modal,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
@@ -13,6 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { groupApi, Group } from '../src/api/group.api';
+import { useTheme } from '../src/theme/ThemeContext';
+import { BaseInput } from '../src/components/base/BaseInput';
 
 interface CreateGroupModalProps {
   visible: boolean;
@@ -25,6 +26,7 @@ export default function CreateGroupModal({
   onClose,
   onGroupCreated,
 }: CreateGroupModalProps) {
+  const { colors } = useTheme();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -91,24 +93,24 @@ export default function CreateGroupModal({
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.backdrop}>
-          <View style={styles.modalContent}>
+        <View style={[styles.backdrop, { backgroundColor: colors.overlay }] }>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity onPress={handleClose} disabled={isLoading}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
-              <Text style={styles.title}>Create Group</Text>
+              <Text style={[styles.title, { color: colors.text }]}>Create Group</Text>
               <View style={{ width: 24 }} />
             </View>
 
             {/* Error Banner */}
             {error && (
-              <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle" size={20} color="#dc2626" />
-                <Text style={styles.errorText}>{error}</Text>
+              <View style={[styles.errorBanner, { backgroundColor: `${colors.error}20`, borderColor: `${colors.error}40` }] }>
+                <Ionicons name="alert-circle" size={20} color={colors.error} />
+                <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
                 <TouchableOpacity onPress={() => setError(null)}>
-                  <Ionicons name="close" size={18} color="#dc2626" />
+                  <Ionicons name="close" size={18} color={colors.error} />
                 </TouchableOpacity>
               </View>
             )}
@@ -116,9 +118,8 @@ export default function CreateGroupModal({
             {/* Form */}
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Group Name *</Text>
-                <TextInput
-                  style={styles.input}
+                <BaseInput
+                  label="Group Name *"
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter group name..."
@@ -126,40 +127,36 @@ export default function CreateGroupModal({
                   editable={!isLoading}
                   autoFocus
                 />
-                <Text style={styles.charCount}>{name.length} / 100</Text>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Description (Optional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
+                <BaseInput
+                  label="Description (Optional)"
                   value={description}
                   onChangeText={setDescription}
                   placeholder="What's this group about?"
                   multiline
-                  numberOfLines={4}
                   maxLength={500}
                   editable={!isLoading}
-                  textAlignVertical="top"
                 />
-                <Text style={styles.charCount}>{description.length} / 500</Text>
               </View>
             </View>
 
             {/* Actions */}
             <View style={styles.actions}>
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.button, styles.cancelButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={handleClose}
                 disabled={isLoading}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.button,
                   styles.createButton,
+                  { backgroundColor: colors.primary },
                   (!name.trim() || isLoading) && styles.buttonDisabled,
                 ]}
                 onPress={handleCreate}
