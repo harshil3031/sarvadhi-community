@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ interface PostCardProps {
   showActions?: boolean;
 }
 
-export default function PostCard({
+const PostCard = memo(function PostCard({
   post,
   currentUserId,
   onPostUpdated,
@@ -53,12 +53,12 @@ export default function PostCard({
   const [reactions, setReactions] = useState<Reaction.Reaction[]>([]);
   const [loadingReactionsModal, setLoadingReactionsModal] = useState(false);
 
-  const isAuthor = currentUserId === post.authorId;
-  const canPin = showActions;
-  const canDelete = showActions && isAuthor;
+  const isAuthor = useMemo(() => currentUserId === post.authorId, [currentUserId, post.authorId]);
+  const canPin = useMemo(() => showActions, [showActions]);
+  const canDelete = useMemo(() => showActions && isAuthor, [showActions, isAuthor]);
 
   /* ------------------ FETCH SUMMARY ------------------ */
-  const fetchReactions = async () => {
+  const fetchReactions = useCallback(async () => {
     try {
       setIsLoadingReactions(true);
       const res = await reactionApi.getReactionsSummary(post.id);
@@ -75,10 +75,10 @@ export default function PostCard({
     } finally {
       setIsLoadingReactions(false);
     }
-  };
+  }, [post.id]);
 
   /* ------------------ FETCH ALL REACTIONS FOR MODAL ------------------ */
-  const fetchAllReactions = async () => {
+  const fetchAllReactions = useCallback(async () => {
     try {
       setLoadingReactionsModal(true);
       const res = await reactionApi.getReactions(post.id);
@@ -88,14 +88,14 @@ export default function PostCard({
     } finally {
       setLoadingReactionsModal(false);
     }
-  };
+  }, [post.id]);
 
   useEffect(() => {
     fetchReactions();
-  }, [post.id]);
+  }, [fetchReactions]);
 
   /* ------------------ PIN / DELETE ------------------ */
-  const handlePinToggle = async () => {
+  const handlePinToggle = useCallback(async () => {
     setIsPinning(true);
     try {
       if (post.isPinned) await postApi.unpinPost(post.id);
@@ -112,9 +112,9 @@ export default function PostCard({
     } finally {
       setIsPinning(false);
     }
-  };
+  }, [post.id, post.isPinned, onPostUpdated]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     Alert.alert('Delete Post', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -137,15 +137,15 @@ export default function PostCard({
         },
       },
     ]);
-  };
+  }, [post.id, onPostDeleted]);
 
-  const handleReactionChange = () => {
+  const handleReactionChange = useCallback(() => {
     fetchReactions();
-  };
+  }, [fetchReactions]);
 
-  const handleCommentCountChange = (newCount: number) => {
+  const handleCommentCountChange = useCallback((newCount: number) => {
     setCommentCount(newCount);
-  };
+  }, []);
 
   if (isDeleting) {
     return (
@@ -295,7 +295,7 @@ export default function PostCard({
       </Modal>
     </BaseCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -347,3 +347,5 @@ const styles = StyleSheet.create({
   reactionEmoji: { fontSize: 20, marginRight: 4 },
   yourLabel: { color: '#3B82F6', fontSize: 12 },
 });
+
+export default PostCard;

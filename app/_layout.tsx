@@ -80,12 +80,21 @@ export default function RootLayout() {
   useEffect(() => {
     if (isLoading || !segments.length) return;
 
+    // IMPORTANT: Skip auth routing if user is on onboarding screen
+    const isOnOnboarding = segments[0] === 'onboarding';
+    if (isOnOnboarding) {
+      console.log('🛑 LAYOUT: On onboarding screen - skipping auth routing');
+      return;
+    }
+
     const inAuthGroup = segments[0] === '(auth)';
 
     const timeoutId = setTimeout(() => {
       if (!isAuthenticated && !inAuthGroup) {
+        console.log('🔐 LAYOUT: Not authenticated - routing to login');
         router.replace('/(auth)/login');
       } else if (isAuthenticated && inAuthGroup) {
+        console.log('✅ LAYOUT: Authenticated on auth screen - routing to feed');
         router.replace('/(tabs)/channels');
       }
     }, 0);
@@ -218,6 +227,7 @@ export default function RootLayout() {
       <View style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
         </Stack>

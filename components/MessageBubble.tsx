@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DM } from '../src/api/dm.api';
@@ -9,7 +9,7 @@ interface MessageBubbleProps {
   isOwn: boolean;
 }
 
-export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   const slideAnim = useRef(new Animated.Value(isOwn ? 100 : -100)).current; // x-axis start
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -26,7 +26,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [slideAnim, opacityAnim]);
+  }, []); // Only run on mount
 
   return (
     <Animated.View
@@ -73,7 +73,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       </View>
     </Animated.View>
   );
-}
+});
 
 
 const styles = StyleSheet.create({
@@ -151,3 +151,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
   },
 });
+
+export default MessageBubble;

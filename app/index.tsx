@@ -1,42 +1,81 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { useAuthStore } from '@/store/auth.store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoadingScreen from '..//components/LoadingScreen';
+import { STORAGE_KEYS } from '@/config/constants';
 
 /**
- * App Entry Point
+ * ONBOARDING ENTRY POINT
  * 
- * This is the first screen shown when the app launches.
- * It handles:
- * 1. Restoring user session from AsyncStorage
- * 2. Validating token with backend (GET /auth/me)
- * 3. Redirecting to appropriate screen based on auth status
+ * This is the FIRST screen shown when app launches.
+ * It controls ONLY:
+ * 1. Splash screen (1.2 seconds)
+ * 2. Onboarding check (first time user?)
+ * 3. Route to onboarding OR auth flow
  * 
- * Flow:
- * - On launch → restoreSession()
- * - Loading → Show LoadingScreen (no flicker)
- * - Valid token → Redirect to /(tabs)/channels
- * - Invalid/no token → Redirect to /(auth)/login
+ * IMPORTANT: This does NOT check auth status!
+ * Auth routing is handled by _layout.tsx after onboarding.
  */
 export default function Index() {
-  const { isAuthenticated, isLoading, restoreSession } = useAuthStore();
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+  const [showSplash, setShowSplash] = useState(true);
 
+  // STEP 1: Show splash for 3 seconds
   useEffect(() => {
-    // Restore session on app launch
-    // This calls GET /auth/me to verify token
-    restoreSession();
+    console.log('🎬 SPLASH: Starting 3-second splash...');
+    const timer = setTimeout(() => {
+      console.log('🎬 SPLASH: Done, hiding splash');
+      setShowSplash(false);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Show loading screen while checking auth
-  // Prevents screen flicker
-  if (isLoading) {
+  // STEP 2: Check onboarding status - ONLY THIS
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const completed = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+        console.log('📋 ONBOARDING: Storage value =', completed);
+        
+        // Set to true if completed, false otherwise (including null)
+        setHasSeenOnboarding(completed === 'true');
+        console.log('📋 ONBOARDING: State set to', completed === 'true');
+      } catch (error) {
+        console.error('❌ ONBOARDING: Check failed', error);
+        setHasSeenOnboarding(false);
+      }
+    };
+    
+    // Check immediately when component mounts
+    checkOnboarding();
+  }, []);
+
+  // RENDERING LOGIC
+  // 1. If splash is showing, show LoadingScreen
+  if (showSplash) {
+    console.log('⏳ RENDER: Showing splash...');
     return <LoadingScreen />;
   }
 
-  // Redirect based on authentication status
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)/feed" />;
+  // 2. If onboarding status is still being checked, show loading
+  if (hasSeenOnboarding === null) {
+    console.log('⏳ RENDER: Checking onboarding status...');
+    return <LoadingScreen />;
   }
 
-  return <Redirect href="/(auth)/login" />;
+  // 3. If first time user (NOT seen onboarding), show onboarding
+  if (hasSeenOnboarding === false) {
+    console.log('📱 RENDER: Showing ONBOARDING');
+    return <Redirect href="/onboarding" />;
+  }
+
+  // 4. If already seen onboarding, let _layout.tsx handle auth routing
+  if (hasSeenOnboarding === true) {
+    console.log('✅ RENDER: Onboarding complete, routing to auth...');
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  // Fallback (should never reach here)
+  console.log('⚠️ RENDER: Fallback route');
+  return <LoadingScreen />;
 }

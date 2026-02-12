@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -55,7 +55,7 @@ export default function ChannelDetailScreen() {
   const canInvite = !!channel?.isMember && (isCreator || user?.role === 'admin' || user?.role === 'moderator');
 
   // Fetch channel details
-  const fetchChannelDetails = async () => {
+  const fetchChannelDetails = useCallback(async () => {
     try {
       const response = await channelApi.getChannel(id);
       if (response.data.success && response.data.data) {
@@ -64,10 +64,10 @@ export default function ChannelDetailScreen() {
     } catch (err: any) {
       console.error('Failed to fetch channel:', err);
     }
-  };
+  }, [id]);
 
   // Fetch posts for this channel
-  const fetchPosts = async (reset = false) => {
+  const fetchPosts = useCallback(async (reset = false) => {
     // Skip if we already know access is denied
     if (accessDenied) {
       console.log('Skipping fetch - access denied to private channel');
@@ -126,7 +126,7 @@ export default function ChannelDetailScreen() {
       setIsRefreshing(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [id, offset, accessDenied]);
 
   // Initial load
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function ChannelDetailScreen() {
       fetchChannelDetails();
       fetchPosts(true);
     }
-  }, [id]);
+  }, [id, fetchChannelDetails, fetchPosts]);
 
   // Join/leave channel room for real-time updates
   useEffect(() => {
@@ -160,39 +160,39 @@ export default function ChannelDetailScreen() {
   }, [id, emit, on, off]);
 
   // Pull to refresh
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     setAccessDenied(false); // Allow retry on manual refresh
     setOffset(0);
     fetchPosts(true);
-  };
+  }, [fetchPosts]);
 
   // Load more posts (pagination)
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore && !isLoading) {
       setIsLoadingMore(true);
       fetchPosts(false);
     }
-  };
+  }, [isLoadingMore, hasMore, isLoading, fetchPosts]);
 
   // Handle new post created (optimistic UI)
-  const handlePostCreated = (newPost: Post.Post) => {
+  const handlePostCreated = useCallback((newPost: Post.Post) => {
     setPosts(prev => [newPost, ...prev]);
-  };
+  }, []);
 
   // Handle post updated (optimistic UI)
-  const handlePostUpdated = (updatedPost: Post.Post) => {
+  const handlePostUpdated = useCallback((updatedPost: Post.Post) => {
     setPosts(prev =>
       prev.map(post => post.id === updatedPost.id ? updatedPost : post)
     );
-  };
+  }, []);
 
   // Handle post deleted (optimistic UI)
-  const handlePostDeleted = (postId: string) => {
+  const handlePostDeleted = useCallback((postId: string) => {
     setPosts(prev => prev.filter(post => post.id !== postId));
-  };
+  }, []);
 
-  const handleJoin = async () => {
+  const handleJoin = useCallback(async () => {
     if (!channel) return;
     try {
       if (channel.type === 'public') {
@@ -209,10 +209,10 @@ export default function ChannelDetailScreen() {
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to join channel');
     }
-  };
+  }, [channel, joinChannel, requestJoinPrivate, fetchChannelDetails, fetchPosts]);
 
   // Render individual post
-  const renderPost = ({ item }: { item: Post.Post }) => (
+  const renderPost = useCallback(({ item }: { item: Post.Post }) => (
     <PostCard
       post={item}
       currentUserId={user?.id}
@@ -220,7 +220,7 @@ export default function ChannelDetailScreen() {
       onPostDeleted={handlePostDeleted}
       showActions={true}
     />
-  );
+  ), [user?.id, handlePostUpdated, handlePostDeleted]);
 
   // Loading state
   if (isLoading && posts.length === 0) {
@@ -306,6 +306,11 @@ export default function ChannelDetailScreen() {
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={21}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={10}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No posts yet</Text>

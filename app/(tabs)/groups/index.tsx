@@ -28,7 +28,8 @@ export default function GroupsScreen() {
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const { colors } = useTheme();
 
-  const fetchGroups = async (isRefresh = false) => {
+  const fetchGroups = useCallback(async (isRefresh = false) => {
+    console.log('[Groups] Fetching groups, tab:', activeTab, 'isRefresh:', isRefresh);
     if (isRefresh) setIsRefreshing(true);
     else setIsLoading(true);
 
@@ -38,6 +39,7 @@ export default function GroupsScreen() {
         if (response.data.success && response.data.data) {
           // Explicitly set isMember for My Groups
           const myGroups = response.data.data.map((g) => ({ ...g, isMember: true }));
+          console.log('[Groups] Fetched my groups:', myGroups.length);
           setGroups(myGroups);
         }
       } else {
@@ -45,11 +47,12 @@ export default function GroupsScreen() {
         if (response.data.success && response.data.data) {
           // Filter to show only groups user is NOT a member of
           const exploreGroups = response.data.data.filter((g) => !g.isMember);
+          console.log('[Groups] Fetched explore groups:', exploreGroups.length);
           setGroups(exploreGroups);
         }
       }
     } catch (err) {
-      console.error('Failed to fetch groups:', err);
+      console.error('[Groups] Failed to fetch groups:', err);
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -60,17 +63,18 @@ export default function GroupsScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [activeTab]);
 
   useFocusEffect(
     useCallback(() => {
+      console.log('[Groups] Screen focused, fetching groups');
       fetchGroups();
-    }, [activeTab])
+    }, [fetchGroups])
   );
 
-  const handleRefresh = () => fetchGroups(true);
+  const handleRefresh = useCallback(() => fetchGroups(true), [fetchGroups]);
 
-  const handleGroupCreated = (newGroup: Group.Group) => {
+  const handleGroupCreated = useCallback((newGroup: Group.Group) => {
     if (activeTab === 'my') {
       setGroups(prev => [{ ...newGroup, isMember: true }, ...prev]);
     } else {
@@ -83,14 +87,21 @@ export default function GroupsScreen() {
       text2: 'Group created successfully!',
       visibilityTime: 2000,
     });
-  };
+  }, [activeTab]);
 
-  const handleGroupLeave = async (groupId: string) => {
+  const handleGroupLeave = useCallback(async (groupId: string) => {
+    console.log('[Groups] Leaving group:', groupId);
     setLoadingActionId(groupId);
     try {
       const response = await groupApi.leaveGroup(groupId);
       if (response.data.success) {
-        setGroups(prev => prev.filter(g => g.id !== groupId));
+        console.log('[Groups] Successfully left group, updating state');
+        // Immediately update local state
+        setGroups(prev => {
+          const updated = prev.filter(g => g.id !== groupId);
+          console.log('[Groups] Groups before:', prev.length, 'Groups after:', updated.length);
+          return updated;
+        });
         Toast.show({
           type: 'success',
           text1: 'Success',
@@ -99,7 +110,7 @@ export default function GroupsScreen() {
         });
       }
     } catch (err: any) {
-      console.error('Failed to leave group:', err);
+      console.error('[Groups] Failed to leave group:', err);
       const errorMsg = err.response?.data?.message || 'Failed to leave group. Please try again.';
       Toast.show({
         type: 'error',
@@ -110,14 +121,20 @@ export default function GroupsScreen() {
     } finally {
       setLoadingActionId(null);
     }
-  };
+  }, []);
 
-  const handleGroupDelete = async (groupId: string) => {
+  const handleGroupDelete = useCallback(async (groupId: string) => {
+    console.log('[Groups] Deleting group:', groupId);
     setLoadingActionId(groupId);
     try {
       const response = await groupApi.deleteGroup(groupId);
       if (response.data.success) {
-        setGroups(prev => prev.filter(g => g.id !== groupId));
+        console.log('[Groups] Successfully deleted group, updating state');
+        setGroups(prev => {
+          const updated = prev.filter(g => g.id !== groupId);
+          console.log('[Groups] Groups before:', prev.length, 'Groups after:', updated.length);
+          return updated;
+        });
         Toast.show({
           type: 'success',
           text1: 'Success',
@@ -126,7 +143,7 @@ export default function GroupsScreen() {
         });
       }
     } catch (err: any) {
-      console.error('Failed to delete group:', err);
+      console.error('[Groups] Failed to delete group:', err);
       const errorMsg = err.response?.data?.message || 'Failed to delete group. Please try again.';
       Toast.show({
         type: 'error',
@@ -137,17 +154,24 @@ export default function GroupsScreen() {
     } finally {
       setLoadingActionId(null);
     }
-  };
+  }, []);
 
-  const handleGroupJoin = async (groupId: string) => {
+  const handleGroupJoin = useCallback(async (groupId: string) => {
+    console.log('[Groups] Joining group:', groupId, 'from tab:', activeTab);
     setLoadingActionId(groupId);
     try {
       const response = await groupApi.joinGroup(groupId);
       if (response.data.success) {
+        console.log('[Groups] Successfully joined group');
         if (activeTab === 'explore') {
-          // Remove from explore list
-          setGroups(prev => prev.filter(g => g.id !== groupId));
-          // Switch to my groups
+          // Immediately remove from explore list
+          setGroups(prev => {
+            const updated = prev.filter(g => g.id !== groupId);
+            console.log('[Groups] Removed from explore. Before:', prev.length, 'After:', updated.length);
+            return updated;
+          });
+          // Switch to my groups tab
+          console.log('[Groups] Switching to My Groups tab');
           setActiveTab('my');
         }
         // Show success toast
@@ -159,7 +183,7 @@ export default function GroupsScreen() {
         });
       }
     } catch (err: any) {
-      console.error('Failed to join group:', err);
+      console.error('[Groups] Failed to join group:', err);
       const errorMsg = err.response?.data?.message || 'Failed to join group. Please try again.';
       Toast.show({
         type: 'error',
@@ -170,9 +194,9 @@ export default function GroupsScreen() {
     } finally {
       setLoadingActionId(null);
     }
-  };
+  }, [activeTab]);
 
-  const renderGroup = ({ item }: { item: Group.Group }) => (
+  const renderGroup = useCallback(({ item }: { item: Group.Group }) => (
     <GroupCard
       group={item}
       onLeave={handleGroupLeave}
@@ -180,9 +204,9 @@ export default function GroupsScreen() {
       onJoin={handleGroupJoin}
       isLoading={loadingActionId === item.id}
     />
-  );
+  ), [handleGroupLeave, handleGroupDelete, handleGroupJoin, loadingActionId]);
 
-  const renderEmpty = () => {
+  const renderEmpty = useCallback(() => {
     if (isLoading) return null;
     return (
       <View style={styles.emptyContainer}>
@@ -211,7 +235,7 @@ export default function GroupsScreen() {
         )}
       </View>
     );
-  };
+  }, [isLoading, activeTab, colors]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -263,6 +287,11 @@ export default function GroupsScreen() {
           refreshControl={
             <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={21}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={15}
         />
       )}
 

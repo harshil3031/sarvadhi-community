@@ -43,23 +43,15 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
   };
 
   const handleJoin = async () => {
-    setIsProcessing(true);
-    try {
-      const response = await groupApi.joinGroup(group.id);
-      if (response.data.success) {
-        onJoin?.(group.id);
+    if (onJoin) {
+      setIsProcessing(true);
+      try {
+        await onJoin(group.id);
+      } catch (err) {
+        // Error handling is done in parent
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (err: any) {
-      const errorMsg =
-        err.response?.data?.message || err.message || 'Failed to join group';
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: errorMsg,
-        visibilityTime: 3000,
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -76,23 +68,15 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
           text: 'Leave',
           style: 'destructive',
           onPress: async () => {
-            setIsProcessing(true);
-            try {
-              const response = await groupApi.leaveGroup(group.id);
-              if (response.data.success) {
-                onLeave?.(group.id);
+            if (onLeave) {
+              setIsProcessing(true);
+              try {
+                await onLeave(group.id);
+              } catch (err) {
+                // Error handling is done in parent
+              } finally {
+                setIsProcessing(false);
               }
-            } catch (err: any) {
-              const errorMsg =
-                err.response?.data?.message || err.message || 'Failed to leave group';
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: errorMsg,
-                visibilityTime: 3000,
-              });
-            } finally {
-              setIsProcessing(false);
             }
           },
         },
@@ -113,23 +97,15 @@ export default function GroupCard({ group, onLeave, onDelete, onJoin, isLoading 
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            setIsProcessing(true);
-            try {
-              const response = await groupApi.deleteGroup(group.id);
-              if (response.data.success) {
-                onDelete?.(group.id);
+            if (onDelete) {
+              setIsProcessing(true);
+              try {
+                await onDelete(group.id);
+              } catch (err) {
+                // Error handling is done in parent
+              } finally {
+                setIsProcessing(false);
               }
-            } catch (err: any) {
-              const errorMsg =
-                err.response?.data?.message || err.message || 'Failed to delete group';
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: errorMsg,
-                visibilityTime: 3000,
-              });
-            } finally {
-              setIsProcessing(false);
             }
           },
         },

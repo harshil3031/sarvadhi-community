@@ -8,4 +8,5 @@ export const API_CONFIG = {
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
   USER: 'user',
+  ONBOARDING_COMPLETED: '@onboarding_completed',
 };

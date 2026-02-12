@@ -1,5 +1,5 @@
 import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator, Pressable, Platform, TouchableOpacity, SafeAreaView } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useChannelStore } from "../../src/store/channel.store";
@@ -17,50 +17,57 @@ export default function FeedScreen() {
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const { colors } = useTheme();
 
-  useEffect(() => {
-    loadFeed();
-  }, []);
+  // Memoize joined channels to prevent recalculation
+  const joinedChannels = useMemo(() => 
+    channels.filter((c) => c.isMember),
+    [channels]
+  );
 
-  const loadFeed = async () => {
+  const loadFeed = useCallback(async () => {
     try {
       await fetchChannels();
     } catch (error) {
       console.error('Failed to load channels:', error);
     }
-  };
+  }, [fetchChannels]);
+
+  useEffect(() => {
+    loadFeed();
+  }, [loadFeed]);
 
   useEffect(() => {
     // When channels are loaded, fetch posts from joined channels
-    const joinedChannels = channels.filter((c) => c.isMember);
     if (joinedChannels.length > 0) {
       const channelIds = joinedChannels.map((c) => c.id);
       fetchFeedPosts(channelIds).catch(error => {
         console.error('Failed to load posts:', error);
       });
     }
-  }, [channels]);
+  }, [joinedChannels.length]); // Only when count changes
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await loadFeed();
     // Also re-fetch posts directly if we have channels
-    const joined = channels.filter((c) => c.isMember);
-    if (joined.length > 0) {
-      await fetchFeedPosts(joined.map(c => c.id));
+    if (joinedChannels.length > 0) {
+      await fetchFeedPosts(joinedChannels.map(c => c.id));
     }
     setIsRefreshing(false);
-  };
+  }, [loadFeed, joinedChannels, fetchFeedPosts]);
 
-  const handlePostCreated = () => {
+  const handlePostCreated = useCallback(() => {
     // Refresh posts explicitly
-    const currentJoinedChannels = channels.filter((c) => c.isMember);
-    if (currentJoinedChannels.length > 0) {
-      const channelIds = currentJoinedChannels.map((c) => c.id);
+    if (joinedChannels.length > 0) {
+      const channelIds = joinedChannels.map((c) => c.id);
       fetchFeedPosts(channelIds);
     }
-  };
+  }, [joinedChannels, fetchFeedPosts]);
 
-  const joinedChannels = channels.filter((c) => c.isMember);
+  // Calculate default channel ID (first joined public channel)
+  const defaultChannelId = useMemo(() => 
+    joinedChannels.length > 0 ? joinedChannels[0].id : undefined,
+    [joinedChannels]
+  );
 
   if (channelsLoading && channels.length === 0) {
     return (
@@ -70,9 +77,6 @@ export default function FeedScreen() {
       </View>
     );
   }
-
-  // Calculate default channel ID (first joined public channel)
-  const defaultChannelId = joinedChannels.length > 0 ? joinedChannels[0].id : undefined;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -114,8 +118,8 @@ export default function FeedScreen() {
           renderItem={({ item }) => (
             <PostCard
               post={item}
-              onPostUpdated={() => handleRefresh()}
-              onPostDeleted={() => handleRefresh()}
+              onPostUpdated={handleRefresh}
+              onPostDeleted={handleRefresh}
             />
           )}
           refreshControl={
@@ -125,6 +129,11 @@ export default function FeedScreen() {
               colors={[colors.primary]}
             />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={21}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={10}
           ListEmptyComponent={
             postsLoading ? (
               <View style={styles.center}>

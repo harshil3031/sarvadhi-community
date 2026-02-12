@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -38,7 +38,7 @@ export default function MessagesScreen() {
   const [isNewDMModalVisible, setIsNewDMModalVisible] = useState(false);
 
   // Fetch conversations
-  const fetchConversations = async (isRefresh = false) => {
+  const fetchConversations = useCallback(async (isRefresh = false) => {
     if (isRefresh) setIsRefreshing(true);
     else setIsLoading(true);
 
@@ -60,7 +60,7 @@ export default function MessagesScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [setDMUnreadCount]);
 
   // Real-time socket updates
   useFocusEffect(
@@ -119,18 +119,21 @@ export default function MessagesScreen() {
         removeSocketListener('dm:message_received', handleMessageReceived);
         removeSocketListener('dm:message_read', handleMessageRead);
       };
-    }, [addSocketListener, removeSocketListener, user?.id])
+    }, [fetchConversations, addSocketListener, removeSocketListener, user?.id])
   );
 
-  const handleRefresh = () => fetchConversations(true);
+  const handleRefresh = useCallback(() => fetchConversations(true), [fetchConversations]);
 
   // Filter existing conversations by other participant
-  const filteredConversations = conversations.filter((conv) => {
-    if (!searchQuery) return true;
-    const otherParticipant = conv.participants.find((p) => p.id !== user?.id);
-    if (!otherParticipant?.fullName) return false;
-    return otherParticipant.fullName.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredConversations = useMemo(() => 
+    conversations.filter((conv) => {
+      if (!searchQuery) return true;
+      const otherParticipant = conv.participants.find((p) => p.id !== user?.id);
+      if (!otherParticipant?.fullName) return false;
+      return otherParticipant.fullName.toLowerCase().includes(searchQuery.toLowerCase());
+    }),
+    [conversations, searchQuery, user?.id]
+  );
 
   // Search for new users
   useEffect(() => {
@@ -157,9 +160,12 @@ export default function MessagesScreen() {
     return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
 
-  const renderConversation = ({ item }: { item: DM.Conversation }) => <DMCard conversation={item} />;
+  const renderConversation = useCallback(({ item }: { item: DM.Conversation }) => 
+    <DMCard conversation={item} />, 
+    []
+  );
 
-  const renderEmpty = () => {
+  const renderEmpty = useCallback(() => {
     if (isLoading) return null;
     return (
       <View style={styles.emptyContainer}>
@@ -174,9 +180,9 @@ export default function MessagesScreen() {
         />
       </View>
     );
-  };
+  }, [isLoading, searchQuery, colors]);
 
-  const renderSearchResults = () => {
+  const renderSearchResults = useCallback(() => {
     if (!searchQuery) return null;
     if (isSearchingUsers) return <ActivityIndicator size="small" color={colors.primary} style={{ margin: 16 }} />;
 
@@ -211,9 +217,9 @@ export default function MessagesScreen() {
         <Text style={[styles.userResultText, { color: colors.text }]}>{userResult.fullName}</Text>
       </TouchableOpacity>
     ));
-  };
+  }, [searchQuery, isSearchingUsers, searchResults, colors, joinConversation]);
 
-  const renderHeader = () => (
+  const renderHeader = useCallback(() => (
     <>
       {!isConnected && (
         <View style={[styles.connectionBanner, { backgroundColor: `${colors.error}20`, borderBottomColor: `${colors.error}40` }] }>
@@ -235,7 +241,7 @@ export default function MessagesScreen() {
         )}
       </View>
     </>
-  );
+  ), [searchQuery, isConnected, colors]);
 
   if (isLoading && !isRefreshing) {
     return (

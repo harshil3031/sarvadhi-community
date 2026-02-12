@@ -433,21 +433,6 @@ export default function ProfileScreen() {
           label="Member Since"
           value={formatDate(user.createdAt)}
         />
-
-        <View style={[styles.fieldContainer]}>
-          <View style={styles.fieldHeader}>
-            <Ionicons name="barcode-outline" size={20} color="#2563EB" />
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-              User ID
-            </Text>
-          </View>
-          <Text
-            style={[styles.fieldValue, { color: colors.text, fontFamily: 'Menlo' }]}
-            numberOfLines={1}
-          >
-            {user.id}
-          </Text>
-        </View>
       </View>
 
       {/* Device Contacts Section */}
