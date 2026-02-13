@@ -51,7 +51,6 @@
     "react-native-android-widget": "^0.20.1",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-inappbrowser-reborn": "^3.7.0",
-    "react-native-msal": "^4.0.4",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
