@@ -56,10 +56,13 @@ export const usePostStore = create<PostState>((set, get) => ({
         }
       });
       
-      // Sort by creation date
-      allPosts.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      // Sort pinned first, then by creation date (newest first)
+      allPosts.sort((a, b) => {
+        if (a.isPinned !== b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
       
       set({ posts: allPosts, isLoading: false });
     } catch (error) {

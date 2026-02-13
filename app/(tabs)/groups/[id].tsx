@@ -154,7 +154,7 @@ export default function GroupDetailScreen() {
 
   const renderPost = ({ item }: { item: Post.Post }) => (
     <View style={styles.postWrapper}>
-      <PostCard post={item} />
+      <PostCard post={item} currentUserId={user?.id} currentUserRole={user?.role} />
     </View>
   );
 

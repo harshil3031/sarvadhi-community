@@ -134,6 +134,8 @@ export default function UserProfileScreen() {
                 renderItem={({ item }) => (
                     <PostCard
                         post={item}
+                        currentUserId={currentUser?.id}
+                        currentUserRole={currentUser?.role}
                         onPostUpdated={handleRefresh}
                         onPostDeleted={handleRefresh}
                     />

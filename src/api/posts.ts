@@ -18,6 +18,7 @@ export namespace Post {
     isPinned: boolean;
     reactionCount: number;
     commentCount: number;
+    userReaction?: string;
     createdAt: string;
     updatedAt: string;
   }
@@ -43,6 +44,15 @@ export const postApi = {
    */
   createPost: (data: Post.CreatePostRequest) =>
     apiClient.post<ApiResponse<Post.Post>>('/posts', data),
+
+  /**
+   * GET /posts
+   * Get feed posts (paginated)
+   */
+  getFeedPosts: (limit = 20, offset = 0) =>
+    apiClient.get<ApiResponse<Post.Post[]>>('/posts', {
+      params: { limit, offset },
+    }),
 
   /**
    * GET /posts/channel/:channelId

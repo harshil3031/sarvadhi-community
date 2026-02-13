@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LoadingScreen from '..//components/LoadingScreen';
+import LoadingScreen from '../components/LoadingScreen';
 import { STORAGE_KEYS } from '@/config/constants';
+import { useAuthStore } from '../src/store/auth.store';
 
 /**
  * ONBOARDING ENTRY POINT
@@ -12,13 +13,11 @@ import { STORAGE_KEYS } from '@/config/constants';
  * 1. Splash screen (1.2 seconds)
  * 2. Onboarding check (first time user?)
  * 3. Route to onboarding OR auth flow
- * 
- * IMPORTANT: This does NOT check auth status!
- * Auth routing is handled by _layout.tsx after onboarding.
  */
 export default function Index() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
   const [showSplash, setShowSplash] = useState(true);
+  const { isAuthenticated } = useAuthStore();
 
   // STEP 1: Show splash for 3 seconds
   useEffect(() => {
@@ -36,7 +35,7 @@ export default function Index() {
       try {
         const completed = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
         console.log('📋 ONBOARDING: Storage value =', completed);
-        
+
         // Set to true if completed, false otherwise (including null)
         setHasSeenOnboarding(completed === 'true');
         console.log('📋 ONBOARDING: State set to', completed === 'true');
@@ -45,7 +44,7 @@ export default function Index() {
         setHasSeenOnboarding(false);
       }
     };
-    
+
     // Check immediately when component mounts
     checkOnboarding();
   }, []);
@@ -69,10 +68,15 @@ export default function Index() {
     return <Redirect href="/onboarding" />;
   }
 
-  // 4. If already seen onboarding, let _layout.tsx handle auth routing
+  // 4. If already seen onboarding, check auth status
   if (hasSeenOnboarding === true) {
-    console.log('✅ RENDER: Onboarding complete, routing to auth...');
-    return <Redirect href="/(auth)/login" />;
+    if (isAuthenticated) {
+      console.log('✅ RENDER: Authenticated, routing to feed...');
+      return <Redirect href="/(tabs)/channels" />;
+    } else {
+      console.log('🔒 RENDER: Not authenticated, routing to login...');
+      return <Redirect href="/(auth)/login" />;
+    }
   }
 
   // Fallback (should never reach here)

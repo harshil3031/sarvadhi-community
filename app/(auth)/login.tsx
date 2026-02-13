@@ -119,7 +119,7 @@ export default function LoginScreen() {
       
       // Success - navigation handled automatically by root layout
       // No manual router.push needed
-      router.push('/profile'); // Optional: can navigate to profile or just rely on root layout
+      router.push('/channels'); // Optional: can navigate to profile or just rely on root layout
       
     } catch (err: any) {
       // Error already in store.error

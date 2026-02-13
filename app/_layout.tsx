@@ -59,13 +59,17 @@ import { useNotificationSocket } from '../src/hooks/useNotificationSocket';
 import { useNotificationStore } from '../src/store/notification.store';
 import { useDMStore } from '../src/store/dm.store';
 import NotificationToast from '../components/NotificationToast';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../src/api/queryClient';
 import { ThemeProvider } from '../src/theme/ThemeContext';
+import { ErrorBoundary } from '../src/components/common/ErrorBoundary';
+import { WidgetSyncWrapper } from '../src/components/WidgetSyncWrapper';
 
 // Detect if running in Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
 
 export default function RootLayout() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, restoreSession } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
   const notificationListener = useRef<any>(null);
@@ -75,6 +79,13 @@ export default function RootLayout() {
   const { incrementUnreadCount, fetchUnreadCount } = useNotificationStore();
   const { fetchTotalUnreadCount, incrementUnreadCount: incrementDMUnreadCount } = useDMStore();
   const [activeNotification, setActiveNotification] = useState<Notification.Notification | null>(null);
+
+  // Restore session on mount
+  useEffect(() => {
+    restoreSession();
+  }, []);
+
+
 
   /* -------------------- AUTH ROUTING -------------------- */
   useEffect(() => {
@@ -223,30 +234,35 @@ export default function RootLayout() {
 
   /* -------------------- LAYOUT STACK -------------------- */
   return (
-    <ThemeProvider>
-      <View style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <WidgetSyncWrapper />
+        <ThemeProvider>
+          <View style={{ flex: 1 }}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
 
-        <NotificationToast
-          notification={activeNotification}
-          onPress={(notification) => {
-            // Handle navigation when toast is tapped
-            const navigationData = {
-              type: notification.type,
-              referenceId: notification.referenceId,
-            };
-            handleNotificationNavigation(navigationData);
-          }}
-          onClose={() => setActiveNotification(null)}
-        />
+            <NotificationToast
+              notification={activeNotification}
+              onPress={(notification) => {
+                // Handle navigation when toast is tapped
+                const navigationData = {
+                  type: notification.type,
+                  referenceId: notification.referenceId,
+                };
+                handleNotificationNavigation(navigationData);
+              }}
+              onClose={() => setActiveNotification(null)}
+            />
 
-        <Toast />
-      </View>
-    </ThemeProvider>
+            <Toast />
+          </View>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

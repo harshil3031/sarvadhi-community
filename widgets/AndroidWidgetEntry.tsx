@@ -1,93 +1,41 @@
-/**
- * Android Widget Entry Point
- * This file is used by react-native-android-widget to render the widget
- */
-
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
+import { registerWidgetTaskHandler } from 'react-native-android-widget';
 
-/**
- * Root widget component - Simple test widget
- */
-const WidgetRoot = () => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Notifications</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>3</Text>
-        </View>
+export async function WidgetTaskHandler(props: any) {
+  try {
+    console.log('[Widget] Inline Handler - Render Attempt');
+
+    // Minimal render with standard components
+    // Inline definition avoids React dispatcher issues with external components in React 19
+    props.renderWidget(
+      <View style={{
+        flex: 1,
+        width: 320,
+        height: 200,
+        backgroundColor: '#4CAF50', // Success Green
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 16
+      }}>
+        <Text style={{
+          color: '#ffffff',
+          fontSize: 24,
+          fontWeight: 'bold'
+        }}>
+          Widget Active
+        </Text>
+        <Text style={{ color: '#ffffff', marginTop: 8 }}>
+          Rendering Success
+        </Text>
       </View>
-      <View style={styles.content}>
-        <View style={styles.notificationItem}>
-          <Text style={styles.notificationTitle}>New Message</Text>
-          <Text style={styles.notificationMessage}>Test notification message</Text>
-        </View>
-      </View>
-      <Text style={styles.footer}>Updated just now</Text>
-    </View>
-  );
-};
+    );
+    console.log('[Widget] Render command sent');
+  } catch (error) {
+    console.error('[Widget] Critical Render Error:', error);
+  }
+}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  badge: {
-    backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  content: {
-    flex: 1,
-  },
-  notificationItem: {
-    backgroundColor: '#f5f5f5',
-    padding: 10,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
-    marginBottom: 8,
-  },
-  notificationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  notificationMessage: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  footer: {
-    fontSize: 10,
-    color: '#999999',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-});
+registerWidgetTaskHandler(WidgetTaskHandler);
 
-export default WidgetRoot;
+export default WidgetTaskHandler;

@@ -1,27 +1,29 @@
-import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator, Pressable, Platform, TouchableOpacity, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useChannelStore } from "../../src/store/channel.store";
-import { usePostStore } from "../../src/store/post.store";
-import { Post } from "../../src/api/posts";
-import PostCard from "../../components/PostCard";
+import { useAuthStore } from "../../src/store/auth.store";
+import PostFeed from "../../src/components/PostFeed";
 import CreatePostModal from "../../components/CreatePostModal";
 import { useTheme } from "../../src/theme/ThemeContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FeedScreen() {
   const router = useRouter();
   const { channels, fetchChannels, isLoading: channelsLoading } = useChannelStore();
-  const { posts, fetchFeedPosts, isLoading: postsLoading } = usePostStore();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user } = useAuthStore();
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const { colors } = useTheme();
 
   // Memoize joined channels to prevent recalculation
-  const joinedChannels = useMemo(() => 
+  const joinedChannels = useMemo(() =>
     channels.filter((c) => c.isMember),
     [channels]
   );
+
+  // Need to force update PostFeed when new post created
+  const [feedVersion, setFeedVersion] = useState(0);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -35,36 +37,12 @@ export default function FeedScreen() {
     loadFeed();
   }, [loadFeed]);
 
-  useEffect(() => {
-    // When channels are loaded, fetch posts from joined channels
-    if (joinedChannels.length > 0) {
-      const channelIds = joinedChannels.map((c) => c.id);
-      fetchFeedPosts(channelIds).catch(error => {
-        console.error('Failed to load posts:', error);
-      });
-    }
-  }, [joinedChannels.length]); // Only when count changes
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await loadFeed();
-    // Also re-fetch posts directly if we have channels
-    if (joinedChannels.length > 0) {
-      await fetchFeedPosts(joinedChannels.map(c => c.id));
-    }
-    setIsRefreshing(false);
-  }, [loadFeed, joinedChannels, fetchFeedPosts]);
-
   const handlePostCreated = useCallback(() => {
-    // Refresh posts explicitly
-    if (joinedChannels.length > 0) {
-      const channelIds = joinedChannels.map((c) => c.id);
-      fetchFeedPosts(channelIds);
-    }
-  }, [joinedChannels, fetchFeedPosts]);
+    setFeedVersion(v => v + 1);
+  }, []);
 
   // Calculate default channel ID (first joined public channel)
-  const defaultChannelId = useMemo(() => 
+  const defaultChannelId = useMemo(() =>
     joinedChannels.length > 0 ? joinedChannels[0].id : undefined,
     [joinedChannels]
   );
@@ -79,7 +57,7 @@ export default function FeedScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <Stack.Screen
         options={{
           headerTitle: "Feed",
@@ -102,46 +80,8 @@ export default function FeedScreen() {
             Join some channels to see posts in your feed.
           </Text>
         </View>
-      ) : posts.length === 0 && !postsLoading ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyIcon}>🚀</Text>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No Posts Yet</Text>
-          <Text style={[styles.info, { color: colors.textSecondary }]}>
-            Be the first to post in your channels!
-          </Text>
-        </View>
       ) : (
-        <FlatList
-          contentContainerStyle={styles.list}
-          data={posts}
-          keyExtractor={(item: Post.Post) => item.id}
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              onPostUpdated={handleRefresh}
-              onPostDeleted={handleRefresh}
-            />
-          )}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              colors={[colors.primary]}
-            />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={21}
-          updateCellsBatchingPeriod={50}
-          initialNumToRender={10}
-          ListEmptyComponent={
-            postsLoading ? (
-              <View style={styles.center}>
-                <ActivityIndicator size="large" color={colors.primary} />
-              </View>
-            ) : null
-          }
-        />
+        <PostFeed key={feedVersion} />
       )}
 
       {/* Floating Action Button */}
@@ -172,6 +112,7 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
   },
   center: {
     flex: 1,

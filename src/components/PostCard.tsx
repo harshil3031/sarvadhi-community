@@ -6,11 +6,11 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   ViewProps,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useTheme } from '../theme/ThemeContext';
 import { Spacing } from '../theme/spacing';
 import { Typography } from '../theme/typography';
@@ -151,7 +151,7 @@ export const PostCard: React.FC<PostCardProps> = ({
           <View style={styles.divider} />
           <ReactionBar
             reactions={reactions}
-            onReactionPress={onReactionPress || (() => {})}
+            onReactionPress={onReactionPress || (() => { })}
           />
         </View>
       )}

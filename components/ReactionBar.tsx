@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import { reactionApi } from '../src/api/reaction.api';
+import { usePostMutations } from '../src/hooks/usePostMutations';
 import { useTheme } from '../src/theme/ThemeContext';
 
 interface ReactionBarProps {
@@ -36,6 +36,7 @@ export default function ReactionBar({
 }: ReactionBarProps) {
   const buttonRef = useRef<View>(null);
   const { colors } = useTheme();
+  const { toggleReaction } = usePostMutations();
 
   const [showPicker, setShowPicker] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -43,6 +44,11 @@ export default function ReactionBar({
     currentReaction || null
   );
   const [count, setCount] = useState(reactionCount);
+
+  useEffect(() => {
+    setUserReaction(currentReaction || null);
+    setCount(reactionCount);
+  }, [currentReaction, reactionCount]);
 
   const [anchor, setAnchor] = useState<{
     x: number;
@@ -90,21 +96,27 @@ export default function ReactionBar({
     const prevReaction = userReaction;
     const prevCount = count;
 
+    // Optimistic UI update (local)
+    if (userReaction === emoji) {
+      setUserReaction(null);
+      setCount(prev => Math.max(0, prev - 1));
+    } else {
+      setUserReaction(emoji);
+      setCount(prev => (prevReaction ? prev : prev + 1));
+    }
+
+    setShowPicker(false);
+
     try {
-      if (userReaction === emoji) {
-        setUserReaction(null);
-        setCount(prev => Math.max(0, prev - 1));
-        await reactionApi.removeReaction(postId);
-      } else {
-        const wasReacted = userReaction !== null;
-        setUserReaction(emoji);
-        setCount(prev => (wasReacted ? prev : prev + 1));
-        await reactionApi.addReaction(postId, { emoji });
-      }
+      await toggleReaction.mutateAsync({
+        postId,
+        emoji,
+        isReacted: userReaction === emoji
+      });
 
       onReactionChange?.();
-      setShowPicker(false);
     } catch {
+      // Revert on error
       setUserReaction(prevReaction);
       setCount(prevCount);
       Toast.show({
@@ -143,32 +155,32 @@ export default function ReactionBar({
   /* ------------------ POSITION ------------------ */
   const popoverStyle = anchor
     ? (() => {
-        const centerX = anchor.x + anchor.width / 2;
+      const centerX = anchor.x + anchor.width / 2;
 
-        const left = Math.min(
-          screenWidth - POPOVER_WIDTH - SCREEN_PADDING,
-          Math.max(SCREEN_PADDING, centerX - POPOVER_WIDTH / 2)
-        );
+      const left = Math.min(
+        screenWidth - POPOVER_WIDTH - SCREEN_PADDING,
+        Math.max(SCREEN_PADDING, centerX - POPOVER_WIDTH / 2)
+      );
 
-        const aboveTop = anchor.y - popoverHeight - 10;
-        const top =
-          aboveTop > SCREEN_PADDING
-            ? aboveTop
-            : anchor.y + anchor.height + 10;
+      const aboveTop = anchor.y - popoverHeight - 10;
+      const top =
+        aboveTop > SCREEN_PADDING
+          ? aboveTop
+          : anchor.y + anchor.height + 10;
 
-        return { top, left };
-      })()
+      return { top, left };
+    })()
     : { top: 0, left: 0 };
 
   /* ------------------ ARROW POSITION ------------------ */
   const arrowLeft = anchor
     ? Math.min(
-        POPOVER_WIDTH - 24,
-        Math.max(
-          24,
-          anchor.x + anchor.width / 2 - popoverStyle.left
-        )
+      POPOVER_WIDTH - 24,
+      Math.max(
+        24,
+        anchor.x + anchor.width / 2 - popoverStyle.left
       )
+    )
     : POPOVER_WIDTH / 2;
 
   /* ------------------ MEASURE HEIGHT ------------------ */

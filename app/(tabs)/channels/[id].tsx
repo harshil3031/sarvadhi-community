@@ -216,11 +216,12 @@ export default function ChannelDetailScreen() {
     <PostCard
       post={item}
       currentUserId={user?.id}
+      currentUserRole={user?.role}
       onPostUpdated={handlePostUpdated}
       onPostDeleted={handlePostDeleted}
       showActions={true}
     />
-  ), [user?.id, handlePostUpdated, handlePostDeleted]);
+  ), [user?.id, user?.role, handlePostUpdated, handlePostDeleted]);
 
   // Loading state
   if (isLoading && posts.length === 0) {

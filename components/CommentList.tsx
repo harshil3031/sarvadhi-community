@@ -217,7 +217,11 @@ export default function CommentList({
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Comments ({commentCount})</Text>
         {onClose && (
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
         )}
@@ -282,13 +286,13 @@ export default function CommentList({
             style={[styles.sendButton, (!newComment.trim() || isSubmitting) && styles.sendButtonDisabled]}
             onPress={handleAddComment}
             disabled={!newComment.trim() || isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.sendButtonText}>Send</Text>
-          )}
-        </Pressable>
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.sendButtonText}>Send</Text>
+            )}
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

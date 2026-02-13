@@ -50,24 +50,6 @@
             "backgroundColor": "#000000"
           }
         }
-      ],
-      [
-        "react-native-android-widget",
-        {
-          "widgets": [
-            {
-              "name": "NotificationWidget",
-              "displayName": "Notifications",
-              "description": "Quick access to your unread notifications",
-              "minWidth": "110dp",
-              "minHeight": "110dp",
-              "maxWidth": "500dp",
-              "maxHeight": "500dp",
-              "widgetId": "NotificationWidgetId",
-              "entryPoint": "widgets/AndroidWidgetEntry.tsx"
-            }
-          ]
-        }
       ]
     ],
     "extra": {

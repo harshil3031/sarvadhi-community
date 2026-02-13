@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Post } from '../src/api/posts';
+import { Auth } from '../src/api/auth';
 import { postApi } from '../src/api/posts';
 import { reactionApi, Reaction } from '../src/api/reaction.api';
 import ReactionBar from './ReactionBar';
@@ -24,6 +25,7 @@ import { BaseCard } from '../src/components/base/BaseCard';
 interface PostCardProps {
   post: Post.Post;
   currentUserId?: string;
+  currentUserRole?: Auth.User['role'];
   onPostUpdated?: (updatedPost: Post.Post) => void;
   onPostDeleted?: (postId: string) => void;
   showActions?: boolean;
@@ -32,6 +34,7 @@ interface PostCardProps {
 const PostCard = memo(function PostCard({
   post,
   currentUserId,
+  currentUserRole,
   onPostUpdated,
   onPostDeleted,
   showActions = true,
@@ -43,7 +46,7 @@ const PostCard = memo(function PostCard({
   const [showComments, setShowComments] = useState(false);
 
   const [reactionCount, setReactionCount] = useState(post.reactionCount || 0);
-  const [currentReaction, setCurrentReaction] = useState<string | null>(null);
+  const [currentReaction, setCurrentReaction] = useState<string | null>(post.userReaction || null);
   const [reactionSummary, setReactionSummary] = useState<Reaction.ReactionSummary[]>([]);
   const [isLoadingReactions, setIsLoadingReactions] = useState(false);
 
@@ -54,7 +57,11 @@ const PostCard = memo(function PostCard({
   const [loadingReactionsModal, setLoadingReactionsModal] = useState(false);
 
   const isAuthor = useMemo(() => currentUserId === post.authorId, [currentUserId, post.authorId]);
-  const canPin = useMemo(() => showActions, [showActions]);
+  const isRoleAllowed = useMemo(
+    () => currentUserRole === 'admin' || currentUserRole === 'moderator',
+    [currentUserRole]
+  );
+  const canPin = useMemo(() => showActions && isAuthor && isRoleAllowed, [showActions, isAuthor, isRoleAllowed]);
   const canDelete = useMemo(() => showActions && isAuthor, [showActions, isAuthor]);
 
   /* ------------------ FETCH SUMMARY ------------------ */
@@ -91,6 +98,8 @@ const PostCard = memo(function PostCard({
   }, [post.id]);
 
   useEffect(() => {
+    // Only fetch if we don't have user reaction (or to get full summary)
+    // Actually, we still need summary for top emojis.
     fetchReactions();
   }, [fetchReactions]);
 
@@ -205,7 +214,7 @@ const PostCard = memo(function PostCard({
         >
           <View style={styles.emojiStack}>
             {topEmojis.map((r, i) => (
-              <View key={`${r.emoji}-${i}`} style={[styles.emojiBubble, { backgroundColor: colors.surfaceSecondary }] }>
+              <View key={`${r.emoji}-${i}`} style={[styles.emojiBubble, { backgroundColor: colors.surfaceSecondary }]}>
                 <Text>{r.emoji}</Text>
               </View>
             ))}
@@ -259,7 +268,7 @@ const PostCard = memo(function PostCard({
 
       {/* FULL REACTIONS MODAL */}
       <Modal visible={showReactionModal} animationType="slide" transparent>
-        <View style={[styles.modalContainer, { backgroundColor: colors.surface }] }>
+        <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Reactions</Text>
             <Pressable onPress={() => setShowReactionModal(false)}>

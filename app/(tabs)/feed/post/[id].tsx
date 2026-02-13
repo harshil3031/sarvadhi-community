@@ -56,7 +56,7 @@ export default function PostDetailScreen() {
           <Text style={styles.loadingText}>Loading post...</Text>
         </View>
       ) : post ? (
-        <PostCard post={post} currentUserId={user?.id} showActions />
+        <PostCard post={post} currentUserId={user?.id} currentUserRole={user?.role} showActions />
       ) : (
         <View style={styles.center}>
           <Text style={styles.emptyText}>Post not found</Text>
