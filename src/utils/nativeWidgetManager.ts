@@ -1,15 +1,22 @@
 import { NativeModules, Platform } from 'react-native';
 
+export interface WidgetNotification {
+    sender: string;
+    message: string;
+    count: number;
+    type: 'message' | 'mention' | 'reaction' | 'comment' | 'invite';
+}
+
 interface WidgetModuleInterface {
-    updateWidget(unreadCount: number, lastMessage: string): Promise<string>;
-    getWidgetData(): Promise<{ unreadCount: number; lastNotification: string }>;
+    updateWidget(unreadCount: number, notifications: WidgetNotification[]): Promise<string>;
+    getWidgetData(): Promise<{ unreadCount: number; notifications: string }>;
 }
 
 const { WidgetModule } = NativeModules;
 
 /**
  * Native Widget Manager
- * Provides methods to update the Android home screen widget from JavaScript
+ * Enhanced to support multiple notifications like Instagram
  */
 class NativeWidgetManager {
     private module: WidgetModuleInterface | null = null;
@@ -28,19 +35,21 @@ class NativeWidgetManager {
     }
 
     /**
-     * Update the widget with new notification data
-     * @param unreadCount Number of unread notifications
-     * @param lastMessage Preview of the most recent notification
+     * Update the widget with multiple notifications
+     * @param unreadCount Total number of unread notifications
+     * @param notifications Array of up to 4 notifications to display
      */
-    async updateWidget(unreadCount: number, lastMessage: string): Promise<void> {
+    async updateWidget(unreadCount: number, notifications: WidgetNotification[]): Promise<void> {
         if (!this.module) {
             console.warn('[NativeWidget] Widget module not available on this platform');
             return;
         }
 
         try {
-            await this.module.updateWidget(unreadCount, lastMessage);
-            console.log('[NativeWidget] Widget updated successfully');
+            // Limit to 4 notifications
+            const limitedNotifications = notifications.slice(0, 4);
+            await this.module.updateWidget(unreadCount, limitedNotifications);
+            console.log('[NativeWidget] Widget updated with', limitedNotifications.length, 'notifications');
         } catch (error) {
             console.error('[NativeWidget] Failed to update widget:', error);
             throw error;
@@ -50,13 +59,17 @@ class NativeWidgetManager {
     /**
      * Get current widget data
      */
-    async getWidgetData(): Promise<{ unreadCount: number; lastNotification: string } | null> {
+    async getWidgetData(): Promise<{ unreadCount: number; notifications: WidgetNotification[] } | null> {
         if (!this.module) {
             return null;
         }
 
         try {
-            return await this.module.getWidgetData();
+            const data = await this.module.getWidgetData();
+            return {
+                unreadCount: data.unreadCount,
+                notifications: JSON.parse(data.notifications),
+            };
         } catch (error) {
             console.error('[NativeWidget] Failed to get widget data:', error);
             return null;

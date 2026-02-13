@@ -50,7 +50,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "./plugins/withNativeWidget.js"
     ],
     "extra": {
       "apiUrl": "http://192.168.2.169:3000/api",
